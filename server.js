@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const app = express();
 app.use(cors());
@@ -12,10 +19,17 @@ app.post('/post/instagram', async (req, res) => {
   try {
     const { caption, imageUrl, accessToken, userId } = req.body;
 
+    console.log('Uploading to Cloudinary:', imageUrl);
+    const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+      resource_type: 'auto',
+    });
+    const publicImageUrl = uploadResult.secure_url;
+    console.log('Cloudinary URL:', publicImageUrl);
+
     const containerRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media`,
       {
-        image_url: imageUrl,
+        image_url: publicImageUrl,
         caption: caption,
         access_token: accessToken,
       }
