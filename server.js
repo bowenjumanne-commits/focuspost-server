@@ -36,6 +36,8 @@ app.post('/post/instagram', async (req, res) => {
     );
 
     const containerId = containerRes.data.id;
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
 
     const publishRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media_publish`,
