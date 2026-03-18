@@ -102,6 +102,41 @@ app.post('/post/threads', async (req, res) => {
   res.json({ success: false, message: 'Threads not yet activated' });
 });
 
+// ─── INSTAGRAM AUTH ───────────────────────────────────────
+app.post('/auth/instagram', async (req, res) => {
+  try {
+    const { code, redirectUri } = req.body;
+
+    const tokenRes = await axios.post(
+      'https://api.instagram.com/oauth/access_token',
+      new URLSearchParams({
+        client_id: '920676630923363',
+        client_secret: process.env.INSTAGRAM_APP_SECRET,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        code: code,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    const { access_token, user_id } = tokenRes.data;
+
+    // Get username
+    const userRes = await axios.get(
+      `https://graph.instagram.com/v18.0/${user_id}?fields=username&access_token=${access_token}`
+    );
+
+    res.json({
+      access_token,
+      user_id: String(user_id),
+      username: userRes.data.username,
+    });
+  } catch (error) {
+    console.error('Instagram auth error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
+
 // ─── HEALTH CHECK ─────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ status: 'FocusPost server is running!' });
