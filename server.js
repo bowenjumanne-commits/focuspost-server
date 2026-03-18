@@ -102,38 +102,35 @@ app.post('/post/threads', async (req, res) => {
   res.json({ success: false, message: 'Threads not yet activated' });
 });
 
-// ─── INSTAGRAM AUTH ───────────────────────────────────────
-app.post('/auth/instagram', async (req, res) => {
-  try {
-    const { code, redirectUri } = req.body;
+// ─── INSTAGRAM LOGIN ──────────────────────────────────────
+app.get('/auth/instagram/login', (req, res) => {
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
+  res.redirect(authUrl);
+});
 
+app.get('/auth/instagram/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
     const tokenRes = await axios.post(
       'https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
         client_id: '920676630923363',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
+        redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/instagram/callback',
         code: code,
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-
     const { access_token, user_id } = tokenRes.data;
-
-    // Get username
     const userRes = await axios.get(
       `https://graph.instagram.com/v18.0/${user_id}?fields=username&access_token=${access_token}`
     );
-
-    res.json({
-      access_token,
-      user_id: String(user_id),
-      username: userRes.data.username,
-    });
+    const username = userRes.data.username;
+    res.redirect(`outpost://auth?token=${access_token}&userId=${user_id}&username=${username}`);
   } catch (error) {
-    console.error('Instagram auth error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, error: error.response?.data || error.message });
+    console.error('Instagram callback error:', error.response?.data || error.message);
+    res.redirect('outpost://auth?error=login_failed');
   }
 });
 
