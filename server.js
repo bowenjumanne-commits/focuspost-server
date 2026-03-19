@@ -104,7 +104,7 @@ app.post('/post/threads', async (req, res) => {
 
 // ─── INSTAGRAM LOGIN ──────────────────────────────────────
 app.get('/auth/instagram/login', (req, res) => {
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
   res.redirect(authUrl);
 });
 
@@ -114,7 +114,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
     const tokenRes = await axios.post(
       'https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
-        client_id: '920676630923363',
+        client_id: '1455754939369201',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
         redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/instagram/callback',
