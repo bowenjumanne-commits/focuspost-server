@@ -172,7 +172,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
-  const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.publish&response_type=code&redirect_uri=https://focuspost-server-production.up.railway.app/auth/tiktok/callback&state=outpost`;
+ const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload&response_type=code&redirect_uri=https://focuspost-server-production.up.railway.app/auth/tiktok/callback&state=outpost`;
   res.redirect(authUrl);
 });
 
