@@ -106,7 +106,7 @@ app.post('/post/threads', async (req, res) => {
 
     // Step 1: Create media container
     const containerRes = await axios.post(
-      https://graph.threads.net/v1.0/${userId}/threads,
+      `https://graph.threads.net/v1.0/${userId}/threads`,
       {
         media_type: imageUrl ? 'IMAGE' : 'TEXT',
         image_url: imageUrl || undefined,
@@ -122,7 +122,7 @@ app.post('/post/threads', async (req, res) => {
 
     // Step 2: Publish
     const publishRes = await axios.post(
-      https://graph.threads.net/v1.0/${userId}/threads_publish,
+      `https://graph.threads.net/v1.0/${userId}/threads_publish`,
       {
         creation_id: containerId,
         access_token: accessToken,
