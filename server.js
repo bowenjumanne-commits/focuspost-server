@@ -191,7 +191,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const { access_token, open_id } = tokenRes.data;
-    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`);
+    res.redirect(`exp://127.0.0.1:8081/--/auth/tiktok?token=${access_token}&userId=${open_id}`);
   } catch (error) {
     console.error('TikTok auth error:', error.response?.data || error.message);
     res.redirect('outpost://auth/tiktok?error=login_failed');
