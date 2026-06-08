@@ -97,14 +97,50 @@ app.post('/post/twitter', async (req, res) => {
   res.json({ success: false, message: 'X API credits not yet activated' });
 });
 
-// ─── THREADS - Ready when activated ──────────────────────
+
+
+// ─── THREADS ──────────────────────────────────────────────
 app.post('/post/threads', async (req, res) => {
-  res.json({ success: false, message: 'Threads not yet activated' });
+  try {
+    const { caption, imageUrl, accessToken, userId } = req.body;
+
+    // Step 1: Create media container
+    const containerRes = await axios.post(
+      https://graph.threads.net/v1.0/${userId}/threads,
+      {
+        media_type: imageUrl ? 'IMAGE' : 'TEXT',
+        image_url: imageUrl || undefined,
+        text: caption,
+        access_token: accessToken,
+      }
+    );
+
+    const containerId = containerRes.data.id;
+
+    // Wait for processing
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Step 2: Publish
+    const publishRes = await axios.post(
+      https://graph.threads.net/v1.0/${userId}/threads_publish,
+      {
+        creation_id: containerId,
+        access_token: accessToken,
+      }
+    );
+
+    res.json({ success: true, postId: publishRes.data.id });
+  } catch (error) {
+    console.error('Threads error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
 });
+
+
 
 // ─── INSTAGRAM LOGIN ──────────────────────────────────────
 app.get('/auth/instagram/login', (req, res) => {
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
   res.redirect(authUrl);
 });
 
@@ -114,7 +150,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
     const tokenRes = await axios.post(
       'https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
-        client_id: '1455754939369201',
+        client_id: '920676630923363',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
         redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/instagram/callback',
@@ -131,6 +167,34 @@ app.get('/auth/instagram/callback', async (req, res) => {
   } catch (error) {
     console.error('Instagram callback error:', error.response?.data || error.message);
     res.redirect('outpost://auth?error=login_failed');
+  }
+});
+
+// ─── TIKTOK AUTH ──────────────────────────────────────────
+app.get('/auth/tiktok/login', (req, res) => {
+  const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.publish&response_type=code&redirect_uri=https://focuspost-server-production.up.railway.app/auth/tiktok/callback&state=outpost`;
+  res.redirect(authUrl);
+});
+
+app.get('/auth/tiktok/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const tokenRes = await axios.post(
+      'https://open.tiktokapis.com/v2/oauth/token/',
+      new URLSearchParams({
+        client_key: process.env.TIKTOK_CLIENT_KEY,
+        client_secret: process.env.TIKTOK_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/tiktok/callback',
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    const { access_token, open_id } = tokenRes.data;
+    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`);
+  } catch (error) {
+    console.error('TikTok auth error:', error.response?.data || error.message);
+    res.redirect('outpost://auth/tiktok?error=login_failed');
   }
 });
 
