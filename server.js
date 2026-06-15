@@ -17,14 +17,19 @@ app.use(express.json());
 // ─── INSTAGRAM ───────────────────────────────────────────
 app.post('/post/instagram', async (req, res) => {
   try {
-    const { caption, imageUrl, accessToken, userId } = req.body;
+const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
     console.log('Uploading to Cloudinary:', imageUrl);
     let publicImageUrl = imageUrl;
     if (!imageUrl.includes('cloudinary.com')) {
-      const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-        resource_type: 'auto',
-      });
+
+    const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+  resource_type: 'auto',
+  aspect_ratio: '4:5',
+  crop: 'fill',
+  gravity: 'center',
+});
+
       publicImageUrl = uploadResult.secure_url;
     }
     console.log('Cloudinary URL:', publicImageUrl); 
