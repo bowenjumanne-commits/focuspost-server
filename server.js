@@ -171,17 +171,18 @@ app.get('/auth/instagram/callback', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-    const { access_token, user_id } = tokenRes.data;
-    const userRes = await axios.get(
-      `https://graph.instagram.com/v21.0/me?fields=username&access_token=${access_token}`
-    );
-    const username = userRes.data.username;
-    res.redirect(`outpost://auth?token=${access_token}&userId=${user_id}&username=${username}`);
-  } catch (error) {
-    console.error('Instagram callback error:', error.response?.data || error.message);
-    res.redirect('outpost://auth?error=login_failed');
-  }
-});
+    const { access_token } = tokenRes.data;
+        const userRes = await axios.get(
+          `https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${access_token}`
+        );
+        const username = userRes.data.username;
+        const userId = userRes.data.id;
+        res.redirect(`outpost://auth?token=${access_token}&userId=${userId}&username=${username}`);
+          } catch (error) {
+            console.error('Instagram callback error:', error.response?.data || error.message);
+            res.redirect('outpost://auth?error=login_failed');
+          }
+        });
 
    
 
