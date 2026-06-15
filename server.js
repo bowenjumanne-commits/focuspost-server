@@ -136,7 +136,19 @@ app.post('/post/threads', async (req, res) => {
   }
 });
 
-
+// — PRIVACY POLICY —
+app.get('/privacy', (req, res) => {
+  res.send(`
+    <html>
+      <body style="font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px;">
+        <h1>Outpost Privacy Policy</h1>
+        <p>Outpost collects your Instagram account information solely to enable posting on your behalf. We do not sell or share your data with third parties.</p>
+        <p>You can revoke access at any time through your Instagram settings.</p>
+        <p>Contact: bowenjumanne@gmail.com</p>
+      </body>
+    </html>
+  `);
+});
 
 app.get('/auth/instagram/login', (req, res) => {
   console.log('Instagram login route hit');
