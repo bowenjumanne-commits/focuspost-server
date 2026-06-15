@@ -138,9 +138,10 @@ app.post('/post/threads', async (req, res) => {
 
 
 
-// ─── INSTAGRAM LOGIN ──────────────────────────────────────
 app.get('/auth/instagram/login', (req, res) => {
-  const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=public_profile,instagram_basic,instagram_content_publish&response_type=code`;
+  console.log('Instagram login route hit');
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish&response_type=code`;
+  console.log('Redirecting to:', authUrl);
   res.redirect(authUrl);
 });
 
@@ -148,9 +149,9 @@ app.get('/auth/instagram/callback', async (req, res) => {
   try {
     const { code } = req.query;
     const tokenRes = await axios.post(
-      'https://graph.facebook.com/v18.0/oauth/access_token',
+      'https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
-        client_id: '1455754939369201',
+        client_id: '920676630923363',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
         redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/instagram/callback',
@@ -160,9 +161,9 @@ app.get('/auth/instagram/callback', async (req, res) => {
     );
     const { access_token, user_id } = tokenRes.data;
     const userRes = await axios.get(
-      'https://graph.facebook.com/v18.0/me?fields=name&access_token=${access_token}'
+      `https://graph.instagram.com/v21.0/me?fields=username&access_token=${access_token}`
     );
-    const username = userRes.data.name;
+    const username = userRes.data.username;
     res.redirect(`outpost://auth?token=${access_token}&userId=${user_id}&username=${username}`);
   } catch (error) {
     console.error('Instagram callback error:', error.response?.data || error.message);
