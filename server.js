@@ -140,7 +140,8 @@ app.post('/post/threads', async (req, res) => {
 
 // ─── INSTAGRAM LOGIN ──────────────────────────────────────
 app.get('/auth/instagram/login', (req, res) => {
-const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=public_profile,instagram_basic,instagram_content_publish&response_type=code`;
+  const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=public_profile,instagram_basic,instagram_content_publish&response_type=code`;
+  res.redirect(authUrl);
 });
 
 app.get('/auth/instagram/callback', async (req, res) => {
