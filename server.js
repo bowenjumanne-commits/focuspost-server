@@ -140,7 +140,7 @@ app.post('/post/threads', async (req, res) => {
 
 // ─── INSTAGRAM LOGIN ──────────────────────────────────────
 app.get('/auth/instagram/login', (req, res) => {
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code`;
+  const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=1455754939369201&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement&response_type=code`;
   res.redirect(authUrl);
 });
 
@@ -148,9 +148,9 @@ app.get('/auth/instagram/callback', async (req, res) => {
   try {
     const { code } = req.query;
     const tokenRes = await axios.post(
-      'https://api.instagram.com/oauth/access_token',
+      'https://graph.facebook.com/v18.0/oauth/access_token',
       new URLSearchParams({
-        client_id: '920676630923363',
+        client_id: '1455754939369201',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
         redirect_uri: 'https://focuspost-server-production.up.railway.app/auth/instagram/callback',
@@ -160,15 +160,17 @@ app.get('/auth/instagram/callback', async (req, res) => {
     );
     const { access_token, user_id } = tokenRes.data;
     const userRes = await axios.get(
-      `https://graph.instagram.com/v18.0/${user_id}?fields=username&access_token=${access_token}`
+      'https://graph.facebook.com/v18.0/me?fields=name&access_token=${access_token}'
     );
-    const username = userRes.data.username;
+    const username = userRes.data.name;
     res.redirect(`outpost://auth?token=${access_token}&userId=${user_id}&username=${username}`);
   } catch (error) {
     console.error('Instagram callback error:', error.response?.data || error.message);
     res.redirect('outpost://auth?error=login_failed');
   }
 });
+
+   
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
@@ -191,7 +193,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const { access_token, open_id } = tokenRes.data;
-    res.redirect(`exp://127.0.0.1:8081/--/auth/tiktok?token=${access_token}&userId=${open_id}`);
+    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`);
   } catch (error) {
     console.error('TikTok auth error:', error.response?.data || error.message);
     res.redirect('outpost://auth/tiktok?error=login_failed');
