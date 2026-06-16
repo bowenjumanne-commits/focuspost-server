@@ -21,14 +21,9 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
    console.log('Uploading to Cloudinary:', imageUrl);
 
-const ratioMap = {
-  '1': '1:1',
-  '0.8': '4:5',
-  '1.7777777777777777': '16:9',
-};
-const ratio = ratioMap[String(aspectRatio)] || '4:5';
-
+const ratio = aspectRatio ? String(aspectRatio) : '1.25';
 let publicImageUrl = imageUrl;
+
 if (imageUrl.includes('cloudinary.com')) {
   publicImageUrl = imageUrl.replace(
     '/image/upload/',
@@ -42,7 +37,6 @@ if (imageUrl.includes('cloudinary.com')) {
     '/image/upload/',
     `/image/upload/ar_${ratio},c_fill,g_center/`
   );
-
 }
 
     console.log('Cloudinary URL:', publicImageUrl); 
