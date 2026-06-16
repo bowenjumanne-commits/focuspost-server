@@ -24,7 +24,7 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 const uploadResult = await cloudinary.uploader.upload(imageUrl, {
   resource_type: 'auto',
   transformation: [
-    { width: 1080, height: 1350, crop: 'limit' }
+    { width: 1080,crop: 'fit' }
   ],
 });
 let publicImageUrl = uploadResult.secure_url;
