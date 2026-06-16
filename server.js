@@ -21,13 +21,13 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
    console.log('Uploading to Cloudinary:', imageUrl);
 
-const ratio = aspectRatio ? Number(aspectRatio) : 1.25;
-
-let publicImageUrl = imageUrl;
 const uploadResult = await cloudinary.uploader.upload(imageUrl, {
   resource_type: 'auto',
+  transformation: [
+    { width: 1080, height: 1350, crop: 'limit' }
+  ],
 });
-publicImageUrl = uploadResult.secure_url;
+let publicImageUrl = uploadResult.secure_url;
 
     console.log('Cloudinary URL:', publicImageUrl); 
 
