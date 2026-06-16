@@ -20,18 +20,18 @@ app.post('/post/instagram', async (req, res) => {
 const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
     console.log('Uploading to Cloudinary:', imageUrl);
-    let publicImageUrl = imageUrl;
-    if (!imageUrl.includes('cloudinary.com')) {
-
-    const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-  resource_type: 'auto',
-  aspect_ratio: '4:5',
-  crop: 'fill',
-  gravity: 'center',
-});
-
-      publicImageUrl = uploadResult.secure_url;
-    }
+    
+         let publicImageUrl = imageUrl;
+          if (true) {
+          const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+            resource_type: 'auto',
+          });
+          const rawUrl = uploadResult.secure_url;
+          publicImageUrl = rawUrl.replace(
+            '/image/upload/',
+            '/image/upload/ar_4:5,c_fill,g_center/'
+          );
+        }
     console.log('Cloudinary URL:', publicImageUrl); 
 
     const containerRes = await axios.post(
