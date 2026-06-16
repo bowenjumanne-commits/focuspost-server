@@ -26,10 +26,8 @@ const ratio = aspectRatio ? Number(aspectRatio) : 1.25;
 let publicImageUrl = imageUrl;
 const uploadResult = await cloudinary.uploader.upload(imageUrl, {
   resource_type: 'auto',
-  eager: [{ aspect_ratio: ratio, crop: 'fill', gravity: 'center' }],
-  eager_async: false,
 });
-publicImageUrl = uploadResult.eager[0].secure_url;
+publicImageUrl = uploadResult.secure_url;
 
     console.log('Cloudinary URL:', publicImageUrl); 
 
