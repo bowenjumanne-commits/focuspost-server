@@ -22,11 +22,10 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
    console.log('Uploading to Cloudinary:', imageUrl);
 
 const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-  resource_type: 'auto',
-  transformation: [
-    { width: 1080,crop: 'fit' }
-  ],
+  resource_type: 'image',
+  format: 'jpg',
 });
+
 let publicImageUrl = uploadResult.secure_url;
 
     console.log('Cloudinary URL:', publicImageUrl); 
