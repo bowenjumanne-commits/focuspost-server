@@ -21,23 +21,15 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
    console.log('Uploading to Cloudinary:', imageUrl);
 
-const ratio = aspectRatio ? String(aspectRatio) : '1.25';
-let publicImageUrl = imageUrl;
+const ratio = aspectRatio ? Number(aspectRatio) : 1.25;
 
-if (imageUrl.includes('cloudinary.com')) {
-  publicImageUrl = imageUrl.replace(
-    '/image/upload/',
-    `/image/upload/ar_${ratio},c_fill,g_center/`
-  );
-} else {
-  const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-    resource_type: 'auto',
-  });
-  publicImageUrl = uploadResult.secure_url.replace(
-    '/image/upload/',
-    `/image/upload/ar_${ratio},c_fill,g_center/`
-  );
-}
+let publicImageUrl = imageUrl;
+const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+  resource_type: 'auto',
+  eager: [{ aspect_ratio: ratio, crop: 'fill', gravity: 'center' }],
+  eager_async: false,
+});
+publicImageUrl = uploadResult.eager[0].secure_url;
 
     console.log('Cloudinary URL:', publicImageUrl); 
 
