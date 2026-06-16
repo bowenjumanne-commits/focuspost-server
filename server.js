@@ -23,9 +23,7 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
 const uploadResult = await cloudinary.uploader.upload(imageUrl, {
   resource_type: 'image',
-  format: 'jpg',
 });
-
 let publicImageUrl = uploadResult.secure_url;
 
     console.log('Cloudinary URL:', publicImageUrl); 
