@@ -19,31 +19,30 @@ app.post('/post/instagram', async (req, res) => {
   try {
 const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
 
-    console.log('Uploading to Cloudinary:', imageUrl);
-    
-         let publicImageUrl = imageUrl;
-if (imageUrl.includes('cloudinary.com')) {
+   console.log('Uploading to Cloudinary:', imageUrl);
 
- const ratioMap = {
+const ratioMap = {
   '1': '1:1',
   '0.8': '4:5',
   '1.7777777777777777': '16:9',
 };
 const ratio = ratioMap[String(aspectRatio)] || '4:5';
-publicImageUrl = imageUrl.replace(
-  '/image/upload/',
-  `/image/upload/ar_${ratio},c_fill,g_center/`
-);
 
+let publicImageUrl = imageUrl;
+if (imageUrl.includes('cloudinary.com')) {
+  publicImageUrl = imageUrl.replace(
+    '/image/upload/',
+    `/image/upload/ar_${ratio},c_fill,g_center/`
+  );
 } else {
   const uploadResult = await cloudinary.uploader.upload(imageUrl, {
     resource_type: 'auto',
   });
-
   publicImageUrl = uploadResult.secure_url.replace(
-  '/image/upload/',
-  `/image/upload/ar_${ratio},c_fill,g_center/`
-);
+    '/image/upload/',
+    `/image/upload/ar_${ratio},c_fill,g_center/`
+  );
+
 }
 
     console.log('Cloudinary URL:', publicImageUrl); 
