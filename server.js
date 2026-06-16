@@ -5,7 +5,7 @@ require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: 'dmuxzxeiu',
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
@@ -22,16 +22,21 @@ const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
     console.log('Uploading to Cloudinary:', imageUrl);
     
          let publicImageUrl = imageUrl;
-          if (true) {
-          const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-            resource_type: 'auto',
-          });
-          const rawUrl = uploadResult.secure_url;
-          publicImageUrl = rawUrl.replace(
-            '/image/upload/',
-            '/image/upload/ar_4:5,c_fill,g_center/'
-          );
-        }
+if (imageUrl.includes('cloudinary.com')) {
+  publicImageUrl = imageUrl.replace(
+    '/image/upload/',
+    '/image/upload/ar_4:5,c_fill,g_center/'
+  );
+} else {
+  const uploadResult = await cloudinary.uploader.upload(imageUrl, {
+    resource_type: 'auto',
+  });
+  publicImageUrl = uploadResult.secure_url.replace(
+    '/image/upload/',
+    '/image/upload/ar_4:5,c_fill,g_center/'
+  );
+}
+
     console.log('Cloudinary URL:', publicImageUrl); 
 
     const containerRes = await axios.post(
