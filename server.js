@@ -17,39 +17,58 @@ app.use(express.json());
 // ─── INSTAGRAM ───────────────────────────────────────────
 app.post('/post/instagram', async (req, res) => {
   try {
-const { caption, imageUrl, accessToken, userId, aspectRatio } = req.body;
+    const { caption, imageUrl, imageUrls, accessToken, userId } = req.body;
 
-   console.log('Uploading to Cloudinary:', imageUrl);
+    // Build the list of images (support both single and multiple)
+    const urls = (imageUrls && imageUrls.length > 0) ? imageUrls : [imageUrl];
+    console.log('Instagram post, image count:', urls.length);
 
-const uploadResult = await cloudinary.uploader.upload(imageUrl, {
-  resource_type: 'image',
-});
-let publicImageUrl = uploadResult.secure_url;
+    // ─── SINGLE IMAGE ───
+    if (urls.length === 1) {
+      const upload = await cloudinary.uploader.upload(urls[0], { resource_type: 'image' });
+      const publicUrl = upload.secure_url;
+      console.log('Cloudinary URL:', publicUrl);
 
-    console.log('Cloudinary URL:', publicImageUrl); 
+      const containerRes = await axios.post(
+        `https://graph.instagram.com/v18.0/${userId}/media`,
+        { image_url: publicUrl, caption: caption, access_token: accessToken }
+      );
+      const containerId = containerRes.data.id;
+      await new Promise(r => setTimeout(r, 5000));
 
-    const containerRes = await axios.post(
+      const publishRes = await axios.post(
+        `https://graph.instagram.com/v18.0/${userId}/media_publish`,
+        { creation_id: containerId, access_token: accessToken }
+      );
+      return res.json({ success: true, postId: publishRes.data.id });
+    }
+
+    // ─── CAROUSEL (multiple images) ───
+    const childIds = [];
+    for (const url of urls) {
+      const upload = await cloudinary.uploader.upload(url, { resource_type: 'image' });
+      const childRes = await axios.post(
+        `https://graph.instagram.com/v18.0/${userId}/media`,
+        { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
+      );
+      childIds.push(childRes.data.id);
+    }
+
+    await new Promise(r => setTimeout(r, 5000));
+
+    const parentRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media`,
-      {
-        image_url: publicImageUrl,
-        caption: caption,
-        access_token: accessToken,
-      }
+      { media_type: 'CAROUSEL', children: childIds.join(','), caption: caption, access_token: accessToken }
     );
-
-    const containerId = containerRes.data.id;
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
+    const parentId = parentRes.data.id;
+    await new Promise(r => setTimeout(r, 5000));
 
     const publishRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media_publish`,
-      {
-        creation_id: containerId,
-        access_token: accessToken,
-      }
+      { creation_id: parentId, access_token: accessToken }
     );
-
     res.json({ success: true, postId: publishRes.data.id });
+
   } catch (error) {
     console.error('Instagram error:', error.response?.data || error.message);
     res.status(500).json({ success: false, error: error.response?.data || error.message });
