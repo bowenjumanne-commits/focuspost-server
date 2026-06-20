@@ -75,6 +75,56 @@ app.post('/post/instagram', async (req, res) => {
   }
 });
 
+// ─── INSTAGRAM VIDEO (Reels) ──────────────────────────────
+app.post('/post/instagram-video', async (req, res) => {
+  try {
+    const { caption, videoUrl, accessToken, userId } = req.body;
+    console.log('Instagram video post:', videoUrl);
+
+    // Step 1: create the video container
+    const containerRes = await axios.post(
+      `https://graph.instagram.com/v18.0/${userId}/media`,
+      {
+        media_type: 'REELS',
+        video_url: videoUrl,
+        caption: caption,
+        access_token: accessToken,
+      }
+    );
+    const containerId = containerRes.data.id;
+
+    // Step 2: poll until the video finishes processing
+    let status = 'IN_PROGRESS';
+    let attempts = 0;
+    while (status === 'IN_PROGRESS' && attempts < 30) {
+      await new Promise(r => setTimeout(r, 5000));
+      const statusRes = await axios.get(
+        `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
+      );
+      status = statusRes.data.status_code;
+      console.log('Video status:', status, 'attempt', attempts);
+      attempts++;
+    }
+
+    if (status !== 'FINISHED') {
+      return res.status(500).json({ success: false, error: 'Video processing failed or timed out. Status: ' + status });
+    }
+
+    // Step 3: publish
+    const publishRes = await axios.post(
+      `https://graph.instagram.com/v18.0/${userId}/media_publish`,
+      { creation_id: containerId, access_token: accessToken }
+    );
+    res.json({ success: true, postId: publishRes.data.id });
+
+  } catch (error) {
+    console.error('Instagram video error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
+
+
+
 // ─── TIKTOK ───────────────────────────────────────────────
 app.post('/post/tiktok', async (req, res) => {
   try {
