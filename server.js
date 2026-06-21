@@ -17,24 +17,43 @@ app.use(express.json());
 // ─── INSTAGRAM ───────────────────────────────────────────
 app.post('/post/instagram', async (req, res) => {
   try {
-    const { caption, imageUrl, imageUrls, accessToken, userId } = req.body;
+    const { caption, imageUrl, imageUrls, mediaItems, accessToken, userId } = req.body;
 
-    // Build the list of images (support both single and multiple)
-    const urls = (imageUrls && imageUrls.length > 0) ? imageUrls : [imageUrl];
-    console.log('Instagram post, image count:', urls.length);
+    // Build a unified list of { url, type } items
+    let items = [];
+    if (mediaItems && mediaItems.length > 0) {
+      items = mediaItems;
+    } else if (imageUrls && imageUrls.length > 0) {
+      items = imageUrls.map(u => ({ url: u, type: 'image' }));
+    } else {
+      items = [{ url: imageUrl, type: 'image' }];
+    }
 
-    // ─── SINGLE IMAGE ───
-    if (urls.length === 1) {
-      const upload = await cloudinary.uploader.upload(urls[0], { resource_type: 'image' });
+    console.log('Instagram post, item count:', items.length, items.map(i => i.type));
+
+    // ─── SINGLE ITEM ───
+    if (items.length === 1) {
+      const item = items[0];
+      const isVideo = item.type === 'video';
+      const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
       const publicUrl = upload.secure_url;
       console.log('Cloudinary URL:', publicUrl);
 
+      const containerPayload = isVideo
+        ? { media_type: 'REELS', video_url: publicUrl, caption: caption, access_token: accessToken }
+        : { image_url: publicUrl, caption: caption, access_token: accessToken };
+
       const containerRes = await axios.post(
         `https://graph.instagram.com/v18.0/${userId}/media`,
-        { image_url: publicUrl, caption: caption, access_token: accessToken }
+        containerPayload
       );
       const containerId = containerRes.data.id;
-      await new Promise(r => setTimeout(r, 5000));
+
+      if (isVideo) {
+        await waitForFinished(containerId, accessToken);
+      } else {
+        await new Promise(r => setTimeout(r, 5000));
+      }
 
       const publishRes = await axios.post(
         `https://graph.instagram.com/v18.0/${userId}/media_publish`,
@@ -43,15 +62,27 @@ app.post('/post/instagram', async (req, res) => {
       return res.json({ success: true, postId: publishRes.data.id });
     }
 
-    // ─── CAROUSEL (multiple images) ───
+    // ─── CAROUSEL (multiple items, photo/video/mixed) ───
     const childIds = [];
-    for (const url of urls) {
-      const upload = await cloudinary.uploader.upload(url, { resource_type: 'image' });
+    for (const item of items) {
+      const isVideo = item.type === 'video';
+      const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
+
+      const childPayload = isVideo
+        ? { media_type: 'VIDEO', video_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
+        : { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken };
+
       const childRes = await axios.post(
         `https://graph.instagram.com/v18.0/${userId}/media`,
-        { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
+        childPayload
       );
-      childIds.push(childRes.data.id);
+      const childId = childRes.data.id;
+
+      if (isVideo) {
+        await waitForFinished(childId, accessToken);
+      }
+
+      childIds.push(childId);
     }
 
     await new Promise(r => setTimeout(r, 5000));
@@ -75,54 +106,23 @@ app.post('/post/instagram', async (req, res) => {
   }
 });
 
-// ─── INSTAGRAM VIDEO (Reels) ──────────────────────────────
-app.post('/post/instagram-video', async (req, res) => {
-  try {
-    const { caption, videoUrl, accessToken, userId } = req.body;
-    console.log('Instagram video post:', videoUrl);
-
-    // Step 1: create the video container
-    const containerRes = await axios.post(
-      `https://graph.instagram.com/v18.0/${userId}/media`,
-      {
-        media_type: 'REELS',
-        video_url: videoUrl,
-        caption: caption,
-        access_token: accessToken,
-      }
+// Helper: poll a container until video processing finishes
+async function waitForFinished(containerId, accessToken) {
+  let status = 'IN_PROGRESS';
+  let attempts = 0;
+  while (status === 'IN_PROGRESS' && attempts < 30) {
+    await new Promise(r => setTimeout(r, 5000));
+    const statusRes = await axios.get(
+      `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
     );
-    const containerId = containerRes.data.id;
-
-    // Step 2: poll until the video finishes processing
-    let status = 'IN_PROGRESS';
-    let attempts = 0;
-    while (status === 'IN_PROGRESS' && attempts < 30) {
-      await new Promise(r => setTimeout(r, 5000));
-      const statusRes = await axios.get(
-        `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
-      );
-      status = statusRes.data.status_code;
-      console.log('Video status:', status, 'attempt', attempts);
-      attempts++;
-    }
-
-    if (status !== 'FINISHED') {
-      return res.status(500).json({ success: false, error: 'Video processing failed or timed out. Status: ' + status });
-    }
-
-    // Step 3: publish
-    const publishRes = await axios.post(
-      `https://graph.instagram.com/v18.0/${userId}/media_publish`,
-      { creation_id: containerId, access_token: accessToken }
-    );
-    res.json({ success: true, postId: publishRes.data.id });
-
-  } catch (error) {
-    console.error('Instagram video error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, error: error.response?.data || error.message });
+    status = statusRes.data.status_code;
+    console.log('Container', containerId, 'status:', status, 'attempt', attempts);
+    attempts++;
   }
-});
-
+  if (status !== 'FINISHED') {
+    throw new Error('Video processing failed or timed out. Status: ' + status);
+  }
+}
 
 
 // ─── TIKTOK ───────────────────────────────────────────────
