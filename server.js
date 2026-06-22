@@ -112,7 +112,7 @@ async function waitForFinished(containerId, accessToken) {
   while (status === 'IN_PROGRESS' && attempts < 30) {
     await new Promise(r => setTimeout(r, 3000));
     const statusRes = await axios.get(
-      https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}
+      `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
     );
     status = statusRes.data.status_code;
     console.log('Container', containerId, 'status:', status, 'attempt', attempts);
