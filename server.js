@@ -90,6 +90,9 @@ app.post('/post/instagram', async (req, res) => {
     );
     const parentId = parentRes.data.id;
 
+    // Wait for the PARENT carousel container itself to finish before publishing
+    await waitForFinished(parentId, accessToken);
+
     const publishRes = await publishWithRetry(userId, parentId, accessToken);
     res.json({ success: true, postId: publishRes.data.id });
 
