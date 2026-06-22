@@ -61,31 +61,35 @@ app.post('/post/instagram', async (req, res) => {
       );
       return res.json({ success: true, postId: publishRes.data.id });
     }
+// ─── CAROUSEL (multiple items, photo/video/mixed) ───
+    // Step A: upload all items to Cloudinary and create all child containers in parallel
+    const childResults = await Promise.all(
+      items.map(async (item) => {
+        const isVideo = item.type === 'video';
+        const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
 
-    // ─── CAROUSEL (multiple items, photo/video/mixed) ───
-    const childIds = [];
-    for (const item of items) {
-      const isVideo = item.type === 'video';
-      const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
+        const childPayload = isVideo
+          ? { media_type: 'VIDEO', video_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
+          : { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken };
 
-      const childPayload = isVideo
-        ? { media_type: 'VIDEO', video_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
-        : { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken };
+        const childRes = await axios.post(
+          `https://graph.instagram.com/v18.0/${userId}/media`,
+          childPayload
+        );
+        return { id: childRes.data.id, isVideo };
+      })
+    );
 
-      const childRes = await axios.post(
-        `https://graph.instagram.com/v18.0/${userId}/media`,
-        childPayload
-      );
-      const childId = childRes.data.id;
+    // Step B: wait for all video children to finish processing, in parallel
+    await Promise.all(
+      childResults
+        .filter(c => c.isVideo)
+        .map(c => waitForFinished(c.id, accessToken))
+    );
 
-      if (isVideo) {
-        await waitForFinished(childId, accessToken);
-      }
+    const childIds = childResults.map(c => c.id);
 
-      childIds.push(childId);
-    }
-
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 3000));
 
     const parentRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media`,
