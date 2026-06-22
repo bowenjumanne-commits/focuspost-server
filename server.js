@@ -106,14 +106,13 @@ app.post('/post/instagram', async (req, res) => {
   }
 });
 
-// Helper: poll a container until video processing finishes
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
   while (status === 'IN_PROGRESS' && attempts < 30) {
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 3000));
     const statusRes = await axios.get(
-      `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
+      https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}
     );
     status = statusRes.data.status_code;
     console.log('Container', containerId, 'status:', status, 'attempt', attempts);
@@ -122,9 +121,9 @@ async function waitForFinished(containerId, accessToken) {
   if (status !== 'FINISHED') {
     throw new Error('Video processing failed or timed out. Status: ' + status);
   }
-  // Extra buffer — IG sometimes reports FINISHED slightly before the
+  // Small buffer — IG sometimes reports FINISHED slightly before the
   // container is actually attachable to a carousel parent.
-  await new Promise(r => setTimeout(r, 8000));
+  await new Promise(r => setTimeout(r, 3000));
 }
 
 
