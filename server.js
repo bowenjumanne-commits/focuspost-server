@@ -19,7 +19,6 @@ app.post('/post/instagram', async (req, res) => {
   try {
     const { caption, imageUrl, imageUrls, mediaItems, accessToken, userId } = req.body;
 
-    // Build a unified list of { url, type } items
     let items = [];
     if (mediaItems && mediaItems.length > 0) {
       items = mediaItems;
@@ -37,7 +36,6 @@ app.post('/post/instagram', async (req, res) => {
       const isVideo = item.type === 'video';
       const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
       const publicUrl = upload.secure_url;
-      console.log('Cloudinary URL:', publicUrl);
 
       const containerPayload = isVideo
         ? { media_type: 'REELS', video_url: publicUrl, caption: caption, access_token: accessToken }
@@ -55,11 +53,11 @@ app.post('/post/instagram', async (req, res) => {
         await new Promise(r => setTimeout(r, 5000));
       }
 
-      const publishRes = await publishWithRetry(parentId, accessToken);
-    res.json({ success: true, postId: publishRes.data.id });
+      const publishRes = await publishWithRetry(userId, containerId, accessToken);
+      return res.json({ success: true, postId: publishRes.data.id });
     }
-// ─── CAROUSEL (multiple items, photo/video/mixed) ───
-    // Step A: upload all items to Cloudinary and create all child containers in parallel
+
+    // ─── CAROUSEL (multiple items, photo/video/mixed) ───
     const childResults = await Promise.all(
       items.map(async (item) => {
         const isVideo = item.type === 'video';
@@ -77,7 +75,6 @@ app.post('/post/instagram', async (req, res) => {
       })
     );
 
-    // Step B: wait for all video children to finish processing, in parallel
     await Promise.all(
       childResults
         .filter(c => c.isVideo)
@@ -85,7 +82,6 @@ app.post('/post/instagram', async (req, res) => {
     );
 
     const childIds = childResults.map(c => c.id);
-
     await new Promise(r => setTimeout(r, 3000));
 
     const parentRes = await axios.post(
@@ -93,12 +89,8 @@ app.post('/post/instagram', async (req, res) => {
       { media_type: 'CAROUSEL', children: childIds.join(','), caption: caption, access_token: accessToken }
     );
     const parentId = parentRes.data.id;
-    await new Promise(r => setTimeout(r, 5000));
 
-    const publishRes = await axios.post(
-      `https://graph.instagram.com/v18.0/${userId}/media_publish`,
-      { creation_id: parentId, access_token: accessToken }
-    );
+    const publishRes = await publishWithRetry(userId, parentId, accessToken);
     res.json({ success: true, postId: publishRes.data.id });
 
   } catch (error) {
@@ -111,7 +103,7 @@ async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
   while (status === 'IN_PROGRESS' && attempts < 30) {
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 2000));
     const statusRes = await axios.get(
       `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
     );
@@ -122,24 +114,20 @@ async function waitForFinished(containerId, accessToken) {
   if (status !== 'FINISHED') {
     throw new Error('Video processing failed or timed out. Status: ' + status);
   }
-  // Small buffer — IG sometimes reports FINISHED slightly before the
-  // container is actually attachable to a carousel parent.
-  await new Promise(r => setTimeout(r, 3000));
 }
 
-// Helper: retry publish a few times if IG says media isn't ready yet
-async function publishWithRetry(userId, creationId, accessToken, maxRetries = 4) {
+async function publishWithRetry(userId, creationId, accessToken, maxRetries = 5) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await axios.post(
-       ` https://graph.instagram.com/v18.0/${userId}/media_publish`,
+        `https://graph.instagram.com/v18.0/${userId}/media_publish`,
         { creation_id: creationId, access_token: accessToken }
       );
     } catch (err) {
       const subcode = err.response?.data?.error?.error_subcode;
+      console.log('Publish attempt', attempt, 'failed. Subcode:', subcode);
       if (subcode === 2207027 && attempt < maxRetries) {
-        console.log('Publish not ready, retrying. Attempt', attempt);
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
       throw err;
