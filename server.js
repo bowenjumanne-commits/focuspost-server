@@ -105,8 +105,9 @@ app.post('/post/instagram', async (req, res) => {
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
-  while (status === 'IN_PROGRESS' && attempts < 30) {
-    await new Promise(r => setTimeout(r, 2000));
+  const maxAttempts = 20;
+  while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
+    await new Promise(r => setTimeout(r, 3000));
     const statusRes = await axios.get(
       `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
     );
@@ -114,8 +115,11 @@ async function waitForFinished(containerId, accessToken) {
     console.log('Container', containerId, 'status:', status, 'attempt', attempts);
     attempts++;
   }
+  if (status === 'ERROR') {
+    throw new Error('Video processing failed. The video format may be unsupported.');
+  }
   if (status !== 'FINISHED') {
-    throw new Error('Video processing failed or timed out. Status: ' + status);
+    throw new Error('Video is taking longer than expected. Please try again in a moment.');
   }
 }
 
