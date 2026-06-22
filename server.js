@@ -55,11 +55,8 @@ app.post('/post/instagram', async (req, res) => {
         await new Promise(r => setTimeout(r, 5000));
       }
 
-      const publishRes = await axios.post(
-        `https://graph.instagram.com/v18.0/${userId}/media_publish`,
-        { creation_id: containerId, access_token: accessToken }
-      );
-      return res.json({ success: true, postId: publishRes.data.id });
+      const publishRes = await publishWithRetry(parentId, accessToken);
+    res.json({ success: true, postId: publishRes.data.id });
     }
 // ─── CAROUSEL (multiple items, photo/video/mixed) ───
     // Step A: upload all items to Cloudinary and create all child containers in parallel
@@ -128,6 +125,26 @@ async function waitForFinished(containerId, accessToken) {
   // Small buffer — IG sometimes reports FINISHED slightly before the
   // container is actually attachable to a carousel parent.
   await new Promise(r => setTimeout(r, 3000));
+}
+
+// Helper: retry publish a few times if IG says media isn't ready yet
+async function publishWithRetry(userId, creationId, accessToken, maxRetries = 4) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await axios.post(
+       ` https://graph.instagram.com/v18.0/${userId}/media_publish`,
+        { creation_id: creationId, access_token: accessToken }
+      );
+    } catch (err) {
+      const subcode = err.response?.data?.error?.error_subcode;
+      if (subcode === 2207027 && attempt < maxRetries) {
+        console.log('Publish not ready, retrying. Attempt', attempt);
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 
