@@ -102,6 +102,43 @@ app.post('/post/instagram', async (req, res) => {
   }
 });
 
+// ─── INSTAGRAM STORY (photo) ──────────────────────────────
+app.post('/post/instagram-story', async (req, res) => {
+  try {
+    const { imageUrl, mediaItems, accessToken, userId } = req.body;
+
+    // Get the single photo URL (from mediaItems or imageUrl)
+    let photoUrl = imageUrl;
+    if (mediaItems && mediaItems.length > 0) {
+      photoUrl = mediaItems[0].url;
+    }
+
+    console.log('Instagram story post, url:', photoUrl);
+
+    // Upload to Cloudinary
+    const upload = await cloudinary.uploader.upload(photoUrl, { resource_type: 'image' });
+    const publicUrl = upload.secure_url;
+
+    // Create story container (no caption for stories)
+    const containerRes = await axios.post(
+      `https://graph.instagram.com/v18.0/${userId}/media`,
+      { media_type: 'STORIES', image_url: publicUrl, access_token: accessToken }
+    );
+    const containerId = containerRes.data.id;
+
+    // Brief wait for container to be ready
+    await new Promise(r => setTimeout(r, 5000));
+
+    // Publish
+    const publishRes = await publishWithRetry(userId, containerId, accessToken);
+    res.json({ success: true, postId: publishRes.data.id });
+
+  } catch (error) {
+    console.error('Instagram story error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
+
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
