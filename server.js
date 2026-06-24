@@ -61,10 +61,17 @@ app.post('/post/instagram', async (req, res) => {
     const childResults = await Promise.all(
       items.map(async (item) => {
         const isVideo = item.type === 'video';
-        const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
+        const upload = await cloudinary.uploader.upload(item.url, {
+          resource_type: isVideo ? 'video' : 'image',
+          ...(isVideo ? { eager: [{ format: 'mp4', video_codec: 'h264', quality: 'auto' }], eager_async: false } : {}),
+        });
+
+        const videoDeliveryUrl = isVideo && upload.eager && upload.eager[0]
+          ? upload.eager[0].secure_url
+          : upload.secure_url;
 
         const childPayload = isVideo
-          ? { media_type: 'VIDEO', video_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
+          ? { media_type: 'VIDEO', video_url: videoDeliveryUrl, is_carousel_item: true, access_token: accessToken }
           : { image_url: upload.secure_url, is_carousel_item: true, access_token: accessToken };
 
         const childRes = await axios.post(
@@ -152,7 +159,7 @@ app.post('/post/instagram-story', async (req, res) => {
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
-  const maxAttempts = 20;
+  const maxAttempts = 40;
   while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
     await new Promise(r => setTimeout(r, 3000));
     const statusRes = await axios.get(
