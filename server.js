@@ -149,6 +149,47 @@ app.post('/post/instagram-story', async (req, res) => {
   }
 });
 
+async function waitForFinished(containerId, accessToken) {
+  let status = 'IN_PROGRESS';
+  let attempts = 0;
+  const maxAttempts = 20;
+  while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
+    await new Promise(r => setTimeout(r, 3000));
+    const statusRes = await axios.get(
+      `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
+    );
+    status = statusRes.data.status_code;
+    console.log('Container', containerId, 'status:', status, 'attempt', attempts);
+    attempts++;
+  }
+  if (status === 'ERROR') {
+    throw new Error('Video processing failed. The video format may be unsupported.');
+  }
+  if (status !== 'FINISHED') {
+    throw new Error('Video is taking longer than expected. Please try again in a moment.');
+  }
+}
+
+async function publishWithRetry(userId, creationId, accessToken, maxRetries = 5) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await axios.post(
+        `https://graph.instagram.com/v18.0/${userId}/media_publish`,
+        { creation_id: creationId, access_token: accessToken }
+      );
+    } catch (err) {
+      const subcode = err.response?.data?.error?.error_subcode;
+      console.log('Publish attempt', attempt, 'failed. Subcode:', subcode);
+      if (subcode === 2207027 && attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+
 // ─── TIKTOK ───────────────────────────────────────────────
 app.post('/post/tiktok', async (req, res) => {
   try {
