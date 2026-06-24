@@ -102,32 +102,42 @@ app.post('/post/instagram', async (req, res) => {
   }
 });
 
-// ─── INSTAGRAM STORY (photo) ──────────────────────────────
+// ─── INSTAGRAM STORY (photo or video) ────────────────────
 app.post('/post/instagram-story', async (req, res) => {
   try {
     const { imageUrl, mediaItems, accessToken, userId } = req.body;
 
-    // Get the single photo URL (from mediaItems or imageUrl)
-    let photoUrl = imageUrl;
+    // Determine the media and its type
+    let mediaUrl = imageUrl;
+    let isVideo = false;
     if (mediaItems && mediaItems.length > 0) {
-      photoUrl = mediaItems[0].url;
+      mediaUrl = mediaItems[0].url;
+      isVideo = mediaItems[0].type === 'video';
     }
 
-    console.log('Instagram story post, url:', photoUrl);
+    console.log('Instagram story post, isVideo:', isVideo, 'url:', mediaUrl);
 
     // Upload to Cloudinary
-    const upload = await cloudinary.uploader.upload(photoUrl, { resource_type: 'image' });
+    const upload = await cloudinary.uploader.upload(mediaUrl, { resource_type: isVideo ? 'video' : 'image' });
     const publicUrl = upload.secure_url;
 
-    // Create story container (no caption for stories)
+    // Create story container
+    const containerPayload = isVideo
+      ? { media_type: 'STORIES', video_url: publicUrl, access_token: accessToken }
+      : { media_type: 'STORIES', image_url: publicUrl, access_token: accessToken };
+
     const containerRes = await axios.post(
       `https://graph.instagram.com/v18.0/${userId}/media`,
-      { media_type: 'STORIES', image_url: publicUrl, access_token: accessToken }
+      containerPayload
     );
     const containerId = containerRes.data.id;
 
-    // Brief wait for container to be ready
-    await new Promise(r => setTimeout(r, 5000));
+    // Videos need processing time, photos just need a brief wait
+    if (isVideo) {
+      await waitForFinished(containerId, accessToken);
+    } else {
+      await new Promise(r => setTimeout(r, 5000));
+    }
 
     // Publish
     const publishRes = await publishWithRetry(userId, containerId, accessToken);
@@ -138,47 +148,6 @@ app.post('/post/instagram-story', async (req, res) => {
     res.status(500).json({ success: false, error: error.response?.data || error.message });
   }
 });
-
-async function waitForFinished(containerId, accessToken) {
-  let status = 'IN_PROGRESS';
-  let attempts = 0;
-  const maxAttempts = 20;
-  while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
-    await new Promise(r => setTimeout(r, 3000));
-    const statusRes = await axios.get(
-      `https://graph.instagram.com/v18.0/${containerId}?fields=status_code&access_token=${accessToken}`
-    );
-    status = statusRes.data.status_code;
-    console.log('Container', containerId, 'status:', status, 'attempt', attempts);
-    attempts++;
-  }
-  if (status === 'ERROR') {
-    throw new Error('Video processing failed. The video format may be unsupported.');
-  }
-  if (status !== 'FINISHED') {
-    throw new Error('Video is taking longer than expected. Please try again in a moment.');
-  }
-}
-
-async function publishWithRetry(userId, creationId, accessToken, maxRetries = 5) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await axios.post(
-        `https://graph.instagram.com/v18.0/${userId}/media_publish`,
-        { creation_id: creationId, access_token: accessToken }
-      );
-    } catch (err) {
-      const subcode = err.response?.data?.error?.error_subcode;
-      console.log('Publish attempt', attempt, 'failed. Subcode:', subcode);
-      if (subcode === 2207027 && attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 2000));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
 
 // ─── TIKTOK ───────────────────────────────────────────────
 app.post('/post/tiktok', async (req, res) => {
