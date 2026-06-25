@@ -17,7 +17,7 @@ app.use(express.json());
 // ─── INSTAGRAM ───────────────────────────────────────────
 app.post('/post/instagram', async (req, res) => {
   try {
-    const { caption, imageUrl, imageUrls, mediaItems, accessToken, userId } = req.body;
+    const { caption, imageUrl, imageUrls, mediaItems, accessToken, userId, mute } = req.body;
 
     let items = [];
     if (mediaItems && mediaItems.length > 0) {
@@ -34,7 +34,11 @@ app.post('/post/instagram', async (req, res) => {
     if (items.length === 1) {
       const item = items[0];
       const isVideo = item.type === 'video';
-      const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
+      const uploadOptions = { resource_type: isVideo ? 'video' : 'image' };
+      if (isVideo && mute) {
+        uploadOptions.transformation = [{ audio_codec: 'none' }];
+      }
+      const upload = await cloudinary.uploader.upload(item.url, uploadOptions);
       const publicUrl = upload.secure_url;
 
       const containerPayload = isVideo
