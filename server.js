@@ -65,7 +65,11 @@ app.post('/post/instagram', async (req, res) => {
     const childResults = await Promise.all(
       items.map(async (item) => {
        const isVideo = item.type === 'video';
-        const upload = await cloudinary.uploader.upload(item.url, { resource_type: isVideo ? 'video' : 'image' });
+        const childUploadOptions = { resource_type: isVideo ? 'video' : 'image' };
+        if (isVideo && mute) {
+          childUploadOptions.transformation = [{ audio_codec: 'none' }];
+        }
+        const upload = await cloudinary.uploader.upload(item.url, childUploadOptions);
 
         const childPayload = isVideo
           ? { media_type: 'VIDEO', video_url: upload.secure_url, is_carousel_item: true, access_token: accessToken }
