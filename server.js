@@ -109,7 +109,7 @@ app.post('/post/instagram', async (req, res) => {
 // ─── INSTAGRAM STORY (photo or video) ────────────────────
 app.post('/post/instagram-story', async (req, res) => {
   try {
-    const { imageUrl, mediaItems, accessToken, userId } = req.body;
+    const { imageUrl, mediaItems, accessToken, userId, mute} = req.body;
 
     // Determine the media and its type
     let mediaUrl = imageUrl;
@@ -122,7 +122,11 @@ app.post('/post/instagram-story', async (req, res) => {
     console.log('Instagram story post, isVideo:', isVideo, 'url:', mediaUrl);
 
     // Upload to Cloudinary
-    const upload = await cloudinary.uploader.upload(mediaUrl, { resource_type: isVideo ? 'video' : 'image' });
+    const uploadOptions = { resource_type: isVideo ? 'video' : 'image' };
+    if (isVideo && mute) {
+      uploadOptions.transformation = [{ audio_codec: 'none' }];
+    }
+    const upload = await cloudinary.uploader.upload(mediaUrl, uploadOptions);
     const publicUrl = upload.secure_url;
 
     // Create story container
