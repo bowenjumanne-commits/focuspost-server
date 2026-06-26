@@ -161,6 +161,21 @@ app.post('/post/instagram-story', async (req, res) => {
   }
 });
 
+// ─── GET USER'S MEDIA (list posts) ───────────────────────
+app.get('/instagram/media', async (req, res) => {
+  try {
+    const { userId, accessToken } = req.query;
+    const response = await axios.get(
+      `https://graph.instagram.com/v18.0/${userId}/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,comments_count&access_token=${accessToken}`
+    );
+    res.json({ success: true, data: response.data.data });
+  } catch (error) {
+    console.error('Get media error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
+
+
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
   let attempts = 0;
