@@ -189,6 +189,20 @@ app.get('/instagram/comments', async (req, res) => {
   }
 });
 
+// ─── REPLY TO A COMMENT ──────────────────────────────────
+app.post('/instagram/reply', async (req, res) => {
+  try {
+    const { commentId, message, accessToken } = req.body;
+    const response = await axios.post(
+      `https://graph.instagram.com/v18.0/${commentId}/replies`,
+      { message: message, access_token: accessToken }
+    );
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error('Reply error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
 
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
