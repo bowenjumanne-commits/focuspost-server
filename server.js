@@ -413,3 +413,15 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`FocusPost server running on port ${PORT}`);
 });
+
+// ─── TEMP DEBUG: raw comment test ─────────────────────────
+app.get('/debug/comments', async (req, res) => {
+  try {
+    const { mediaId, accessToken } = req.query;
+    const url = `https://graph.instagram.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`;
+    const response = await axios.get(url);
+    res.json({ ok: true, raw: response.data });
+  } catch (error) {
+    res.json({ ok: false, error: error.response?.data || error.message });
+  }
+});
