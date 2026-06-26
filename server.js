@@ -175,6 +175,20 @@ app.get('/instagram/media', async (req, res) => {
   }
 });
 
+// ─── GET COMMENTS ON A POST ──────────────────────────────
+app.get('/instagram/comments', async (req, res) => {
+  try {
+    const { mediaId, accessToken } = req.query;
+    const response = await axios.get(
+      `https://graph.instagram.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp,replies{id,text,username,timestamp}&access_token=${accessToken}`
+    );
+    res.json({ success: true, data: response.data.data });
+  } catch (error) {
+    console.error('Get comments error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
+
 
 async function waitForFinished(containerId, accessToken) {
   let status = 'IN_PROGRESS';
