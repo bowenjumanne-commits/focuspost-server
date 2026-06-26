@@ -297,7 +297,9 @@ app.get('/privacy', (req, res) => {
 
 app.get('/auth/instagram/login', (req, res) => {
   console.log('Instagram login route hit');
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish&response_type=code`;
+
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=920676630923363&redirect_uri=https://focuspost-server-production.up.railway.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments&response_type=code`;
+
   console.log('Redirecting to:', authUrl);
   res.redirect(authUrl);
 });
