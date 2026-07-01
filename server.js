@@ -3,6 +3,9 @@ const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
 const cloudinary = require('cloudinary').v2;
+const Anthropic = require('@anthropic-ai/sdk');
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
 
 cloudinary.config({
   cloud_name: 'dmuxzxeiu',
@@ -13,6 +16,7 @@ cloudinary.config({
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 
 // ─── INSTAGRAM ───────────────────────────────────────────
 app.post('/post/instagram', async (req, res) => {
@@ -82,6 +86,58 @@ app.post('/post/instagram', async (req, res) => {
         return { id: childRes.data.id, isVideo };
       })
     );
+
+
+    // ─── AI: Improve Caption ───────────────────────────────
+app.post('/ai/caption', async (req, res) => {
+  try {
+    const { caption } = req.body;
+    if (!caption || !caption.trim()) {
+      return res.status(400).json({ error: 'Caption is required' });
+    }
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: `Rewrite this social media caption to be more engaging and punchy for Instagram. Keep it authentic and similar in length. Do not add hashtags. Return ONLY the improved caption with no quotes, no preamble, no explanation:\n\n${caption}`
+      }]
+    });
+
+    const improved = msg.content[0].text.trim();
+    res.json({ improved });
+  } catch (error) {
+    console.error('AI caption error:', error);
+    res.status(500).json({ error: 'Could not improve caption' });
+  }
+});
+
+// ─── AI: Suggest Hashtags ──────────────────────────────
+app.post('/ai/hashtags', async (req, res) => {
+  try {
+    const { caption } = req.body;
+    if (!caption || !caption.trim()) {
+      return res.status(400).json({ error: 'Caption is required' });
+    }
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: `Suggest 8 relevant, popular Instagram hashtags for this caption. Return ONLY a comma-separated list of hashtags (each starting with #), no other text:\n\n${caption}`
+      }]
+    });
+
+    const raw = msg.content[0].text.trim();
+    const hashtags = raw.split(',').map(h => h.trim()).filter(h => h.startsWith('#'));
+    res.json({ hashtags });
+  } catch (error) {
+    console.error('AI hashtags error:', error);
+    res.status(500).json({ error: 'Could not suggest hashtags' });
+  }
+});
 
     await Promise.all(
       childResults
