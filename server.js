@@ -411,6 +411,88 @@ app.get('/auth/tiktok/callback', async (req, res) => {
   }
 });
 
+// ─── STORY COMPOSITE (text + filter baked into 1080x1920) ───
+const sharp = require('sharp');
+
+app.post('/story/compose', async (req, res) => {
+  try {
+    const { imageUrl, text, textColor, fontFamily, fontWeight, filter, textXPercent, textYPercent, textScale } = req.body;
+
+    if (!imageUrl) return res.status(400).json({ error: 'imageUrl required' });
+
+    // 1. Download the source image
+    const imgResp = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    const imgBuffer = Buffer.from(imgResp.data);
+
+    // 2. Resize/fit to exactly 1080x1920 (story size), filling the frame
+    let pipeline = sharp(imgBuffer).resize(1080, 1920, { fit: 'cover' });
+
+    // 3. Apply filter as a color tint overlay
+    const filterTints = {
+      none: null,
+      cool: { r: 59, g: 130, b: 246, alpha: 0.18 },
+      warm: { r: 249, g: 115, b: 22, alpha: 0.18 },
+      bw: null, // handled via grayscale below
+      fade: { r: 255, g: 255, b: 255, alpha: 0.15 },
+      sepia: { r: 160, g: 120, b: 60, alpha: 0.28 },
+      noir: { r: 0, g: 0, b: 0, alpha: 0.32 },
+      sunset: { r: 236, g: 72, b: 153, alpha: 0.2 },
+      mint: { r: 34, g: 197, b: 94, alpha: 0.16 },
+      dusk: { r: 99, g: 102, b: 241, alpha: 0.22 },
+      peach: { r: 251, g: 146, b: 120, alpha: 0.22 },
+      frost: { r: 147, g: 197, b: 253, alpha: 0.2 },
+    };
+
+    if (filter === 'bw') {
+      pipeline = pipeline.grayscale();
+    }
+
+    let baseBuffer = await pipeline.png().toBuffer();
+
+    const composites = [];
+
+    // Filter tint layer
+    const tint = filterTints[filter];
+    if (tint) {
+      const tintSvg = Buffer.from(
+        `<svg width="1080" height="1920"><rect width="1080" height="1920" fill="rgba(${tint.r},${tint.g},${tint.b},${tint.alpha})"/></svg>`
+      );
+      composites.push({ input: tintSvg, top: 0, left: 0 });
+    }
+
+    // 4. Text layer (if text exists)
+    if (text && text.trim()) {
+      const fontSize = Math.round(64 * (textScale || 1));
+      const yPos = Math.round((textYPercent || 45) / 100 * 1920);
+      const escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const textSvg = Buffer.from(`
+        <svg width="1080" height="1920" xmlns="http://www.w3.org/2000/svg">
+          <style>
+            .txt { fill: ${textColor || '#ffffff'}; font-size: ${fontSize}px; font-family: ${fontFamily || 'sans-serif'}; font-weight: ${fontWeight || 700}; }
+          </style>
+          <text x="540" y="${yPos}" text-anchor="middle" class="txt">${escapedText}</text>
+        </svg>
+      `);
+      composites.push({ input: textSvg, top: 0, left: 0 });
+    }
+
+    // 5. Composite everything
+    const finalBuffer = await sharp(baseBuffer).composite(composites).jpeg({ quality: 95 }).toBuffer();
+
+    // 6. Upload the finished image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(
+      `data:image/jpeg;base64,${finalBuffer.toString('base64')}`,
+      { resource_type: 'image' }
+    );
+
+    res.json({ success: true, url: uploadResult.secure_url });
+  } catch (error) {
+    console.error('Story compose error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ─── AI: Improve Caption ───────────────────────────────
 app.post('/ai/caption', async (req, res) => {
   try {
