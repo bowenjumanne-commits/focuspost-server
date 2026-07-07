@@ -185,8 +185,8 @@ app.get('/instagram/media', async (req, res) => {
 // ─── GET COMMENTS ON A POST ──────────────────────────────
 app.get('/instagram/comments', async (req, res) => {
   try {
-    const { mediaId, accessToken } = req.query;
-    const response = await axios.get(
+const { mediaId, accessToken } = req.query;
+    console.log('TOKEN FOR DEBUG:', accessToken);    const response = await axios.get(
       `https://graph.instagram.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`
     );
     res.json({ success: true, data: response.data.data });
