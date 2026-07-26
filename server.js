@@ -385,7 +385,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
- const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload&response_type=code&redirect_uri=https://focuspost-server-production.up.railway.app/auth/tiktok/callback&state=outpost`;
+const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish&response_type=code&redirect_uri=https://focuspost-server-production.up.railway.app/auth/tiktok/callback&state=outpost`;
   res.redirect(authUrl);
 });
 
@@ -403,8 +403,10 @@ app.get('/auth/tiktok/callback', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
+   console.log('TIKTOK TOKEN RESPONSE:', JSON.stringify(tokenRes.data));
     const { access_token, open_id } = tokenRes.data;
-    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`);
+    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`); 
+    
   } catch (error) {
     console.error('TikTok auth error:', error.response?.data || error.message);
     res.redirect('outpost://auth/tiktok?error=login_failed');
