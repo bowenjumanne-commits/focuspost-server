@@ -273,34 +273,62 @@ app.post('/tiktok/creator-info', async (req, res) => {
   }
 });
 
-app.post('/post/tiktok', async (req, res) => {
-try {
-    const { accessToken, videoUrl, caption } = req.body;
 
-    const response = await axios.post(
+app.post('/post/tiktok', async (req, res) => {
+  try {
+    const {
+      accessToken, videoUrl, caption,
+      privacyLevel, disableComment, disableDuet, disableStitch,
+      brandOrganic, brandedContent, aiGenerated,
+    } = req.body;
+
+    const fileRes = await axios.get(videoUrl, { responseType: 'arraybuffer', maxContentLength: Infinity, maxBodyLength: Infinity });
+    const buffer = Buffer.from(fileRes.data);
+    const videoSize = buffer.length;
+    console.log('TIKTOK video bytes:', videoSize);
+
+    const initRes = await axios.post(
       'https://open.tiktokapis.com/v2/post/publish/video/init/',
       {
         post_info: {
-          title: caption,
-          privacy_level: 'PUBLIC_TO_EVERYONE',
-          disable_duet: false,
-          disable_comment: false,
-          disable_stitch: false,
+          title: caption || '',
+          privacy_level: privacyLevel || 'SELF_ONLY',
+          disable_comment: !!disableComment,
+          disable_duet: !!disableDuet,
+          disable_stitch: !!disableStitch,
+          brand_organic_toggle: !!brandOrganic,
+          brand_content_toggle: !!brandedContent,
+          is_aigc: !!aiGenerated,
         },
         source_info: {
-          source: 'PULL_FROM_URL',
-          video_url: videoUrl,
+          source: 'FILE_UPLOAD',
+          video_size: videoSize,
+          chunk_size: videoSize,
+          total_chunk_count: 1,
         },
       },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json; charset=UTF-8' } }
     );
 
-    res.json({ success: true, data: response.data });
+    const publishId = initRes.data?.data?.publish_id;
+    const uploadUrl = initRes.data?.data?.upload_url;
+    console.log('TIKTOK init:', JSON.stringify(initRes.data));
+
+    if (!uploadUrl) {
+      return res.status(500).json({ success: false, error: initRes.data });
+    }
+
+    await axios.put(uploadUrl, buffer, {
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Length': videoSize,
+        'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`,
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+
+    res.json({ success: true, publishId });
   } catch (error) {
     console.error('TikTok error:', error.response?.data || error.message);
     res.status(500).json({ success: false, error: error.response?.data || error.message });
