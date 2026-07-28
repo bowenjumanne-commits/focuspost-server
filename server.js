@@ -292,6 +292,53 @@ app.post('/tiktok/creator-info', async (req, res) => {
   }
 });
 
+app.post('/post/tiktok-photo', async (req, res) => {
+  try {
+    const {
+      accessToken, photoUrls, caption, title,
+      privacyLevel, disableComment,
+      brandOrganic, brandedContent, aiGenerated,
+    } = req.body;
+
+    if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
+      return res.status(400).json({ success: false, error: 'No photoUrls provided' });
+    }
+
+    const initRes = await axios.post(
+      'https://open.tiktokapis.com/v2/post/publish/content/init/',
+      {
+        post_info: {
+          title: title || caption || '',
+          description: caption || '',
+          privacy_level: privacyLevel || 'SELF_ONLY',
+          disable_comment: !!disableComment,
+          auto_add_music: true,
+          brand_organic_toggle: !!brandOrganic,
+          brand_content_toggle: !!brandedContent,
+          is_aigc: !!aiGenerated,
+        },
+        source_info: {
+          source: 'PULL_FROM_URL',
+          photo_cover_index: 0,
+          photo_images: photoUrls,
+        },
+        post_mode: 'DIRECT_POST',
+        media_type: 'PHOTO',
+      },
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json; charset=UTF-8' } }
+    );
+
+    console.log('TIKTOK PHOTO INIT:', JSON.stringify(initRes.data));
+    const publishId = initRes.data?.data?.publish_id;
+    if (!publishId) {
+      return res.status(500).json({ success: false, error: initRes.data });
+    }
+    res.json({ success: true, publishId });
+  } catch (error) {
+    console.error('TikTok photo error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
 
 app.post('/post/tiktok', async (req, res) => {
   try {
