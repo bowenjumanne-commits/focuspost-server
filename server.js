@@ -429,7 +429,30 @@ app.get('/auth/instagram/callback', async (req, res) => {
           }
         });
 
-   
+   app.post('/auth/tiktok/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    const tokenRes = await axios.post(
+      'https://open.tiktokapis.com/v2/oauth/token/',
+      new URLSearchParams({
+        client_key: process.env.TIKTOK_CLIENT_KEY,
+        client_secret: process.env.TIKTOK_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    console.log('TIKTOK REFRESH RESPONSE:', JSON.stringify(tokenRes.data));
+    const { access_token, open_id, refresh_token, expires_in } = tokenRes.data;
+    if (!access_token) {
+      return res.status(400).json({ success: false, error: tokenRes.data });
+    }
+    res.json({ success: true, accessToken: access_token, userId: open_id, refreshToken: refresh_token, expiresIn: expires_in });
+  } catch (error) {
+    console.error('TikTok refresh error:', error.response?.data || error.message);
+    res.status(500).json({ success: false, error: error.response?.data || error.message });
+  }
+});
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
@@ -452,8 +475,9 @@ app.get('/auth/tiktok/callback', async (req, res) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
    console.log('TIKTOK TOKEN RESPONSE:', JSON.stringify(tokenRes.data));
-    const { access_token, open_id } = tokenRes.data;
-    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}`); 
+    const { access_token, open_id, refresh_token, expires_in } = tokenRes.data;
+    res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}&refreshToken=${refresh_token}&expiresIn=${expires_in}`);
+    
     
   } catch (error) {
     console.error('TikTok auth error:', error.response?.data || error.message);
