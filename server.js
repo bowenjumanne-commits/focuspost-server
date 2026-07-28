@@ -292,6 +292,23 @@ app.post('/tiktok/creator-info', async (req, res) => {
   }
 });
 
+app.get('/media/img', async (req, res) => {
+  try {
+    const { u } = req.query;
+    if (!u || !/^https:\/\/res\.cloudinary\.com\//.test(u)) {
+      return res.status(400).send('Invalid source');
+    }
+    const upstream = await axios.get(u, { responseType: 'arraybuffer', maxContentLength: Infinity, maxBodyLength: Infinity });
+    res.set('Content-Type', upstream.headers['content-type'] || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(upstream.data));
+  } catch (error) {
+    console.error('Media proxy error:', error.message);
+    res.status(502).send('Upstream fetch failed');
+  }
+});
+
+
 app.post('/post/tiktok-photo', async (req, res) => {
   try {
     const {
