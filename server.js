@@ -251,6 +251,10 @@ async function publishWithRetry(userId, creationId, accessToken, maxRetries = 5)
   }
 }
 
+app.get('/tiktok4deWatyxf2MWmO55hGL43GhF67B4HE1B.txt', (req, res) => {
+  res.type('text/plain').send('tiktok-developers-site-verification=4deWatyxf2MWmO55hGL43GhF67B4HE1B');
+});
+
 app.post('/tiktok/status', async (req, res) => {
   try {
     const { accessToken, publishId } = req.body;
