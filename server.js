@@ -314,7 +314,8 @@ app.post('/post/tiktok-photo', async (req, res) => {
     const {
       accessToken, photoUrls, caption, title,
       privacyLevel, disableComment,
-      brandOrganic, brandedContent, aiGenerated,
+      
+      brandOrganic, brandedContent, aiGenerated, autoAddMusic,
     } = req.body;
 
     if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
@@ -329,7 +330,7 @@ app.post('/post/tiktok-photo', async (req, res) => {
           description: caption || '',
           privacy_level: privacyLevel || 'SELF_ONLY',
           disable_comment: !!disableComment,
-          auto_add_music: true,
+          auto_add_music: autoAddMusic !== false,
           brand_organic_toggle: !!brandOrganic,
           brand_content_toggle: !!brandedContent,
           is_aigc: !!aiGenerated,
