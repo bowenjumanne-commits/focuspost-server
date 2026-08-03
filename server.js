@@ -292,6 +292,23 @@ app.post('/tiktok/creator-info', async (req, res) => {
   }
 });
 
+app.post('/media/delete', async (req, res) => {
+  try {
+    const { publicIds, resourceType } = req.body;
+    if (!Array.isArray(publicIds) || publicIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'No publicIds provided' });
+    }
+    const result = await cloudinary.api.delete_resources(publicIds, {
+      resource_type: resourceType || 'image',
+    });
+    console.log('CLOUDINARY DELETE:', JSON.stringify(result));
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Cloudinary delete error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/media/img', async (req, res) => {
   try {
     const { u } = req.query;
