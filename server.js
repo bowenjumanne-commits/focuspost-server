@@ -542,12 +542,28 @@ app.get('/auth/instagram/callback', async (req, res) => {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
     const { access_token } = tokenRes.data;
+    let igToken = access_token;
+    try {
+      const longRes = await axios.get('https://graph.instagram.com/access_token', {
+        params: {
+          grant_type: 'ig_exchange_token',
+          client_secret: process.env.INSTAGRAM_APP_SECRET,
+          access_token: access_token,
+        },
+      });
+      if (longRes.data && longRes.data.access_token) {
+        igToken = longRes.data.access_token;
+        console.log('IG LONG TOKEN, expires_in:', longRes.data.expires_in);
+      }
+    } catch (e) {
+      console.error('IG long-lived exchange failed:', e.response?.data || e.message);
+    }
         const userRes = await axios.get(
-          `https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${access_token}`
+          `https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${igToken}`
         );
         const username = userRes.data.username;
         const userId = userRes.data.id;
-        res.redirect(`outpost://auth?token=${access_token}&userId=${userId}&username=${username}`);
+        res.redirect(`outpost://auth?token=${igToken}&userId=${userId}&username=${username}`);
           } catch (error) {
             console.error('Instagram callback error:', error.response?.data || error.message);
             res.redirect('outpost://auth?error=login_failed');
