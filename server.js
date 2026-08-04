@@ -312,13 +312,15 @@ app.post('/media/delete', async (req, res) => {
 app.get('/media/img', async (req, res) => {
   try {
     const { u } = req.query;
+    console.log('MEDIA PROXY HIT:', u);
     if (!u || !/^https:\/\/res\.cloudinary\.com\//.test(u)) {
       return res.status(400).send('Invalid source');
     }
-    const upstream = await axios.get(u, { responseType: 'arraybuffer', maxContentLength: Infinity, maxBodyLength: Infinity });
+    const upstream = await axios.get(u, { responseType: 'stream', timeout: 20000 });
     res.set('Content-Type', upstream.headers['content-type'] || 'image/jpeg');
+    if (upstream.headers['content-length']) res.set('Content-Length', upstream.headers['content-length']);
     res.set('Cache-Control', 'public, max-age=86400');
-    res.send(Buffer.from(upstream.data));
+    upstream.data.pipe(res);
   } catch (error) {
     console.error('Media proxy error:', error.message);
     res.status(502).send('Upstream fetch failed');
