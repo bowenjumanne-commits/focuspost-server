@@ -33,6 +33,8 @@ app.post('/post/instagram', async (req, res) => {
     }
 
     console.log('Instagram post, item count:', items.length, items.map(i => i.type));
+    console.log('IG URLS:', JSON.stringify(req.body.imageUrls || req.body.mediaItems || []));
+    console.log('IG URLS:', JSON.stringify(req.body.imageUrls || req.body.mediaItems || []));
 
     // ─── SINGLE ITEM ───
     if (items.length === 1) {
