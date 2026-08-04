@@ -310,6 +310,23 @@ app.post('/media/delete', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+app.get('/media/p/:id', async (req, res) => {
+  try {
+    const raw = String(req.params.id || '');
+    const id = raw.replace(/\.[a-z0-9]+$/i, '');
+    if (!/^[A-Za-z0-9_\-]+$/.test(id)) return res.status(400).send('Invalid id');
+    const url = 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + id + '.jpg';
+    console.log('MEDIA P HIT:', url);
+    const upstream = await axios.get(url, { responseType: 'stream', timeout: 20000 });
+    res.set('Content-Type', 'image/jpeg');
+    if (upstream.headers['content-length']) res.set('Content-Length', upstream.headers['content-length']);
+    res.set('Cache-Control', 'public, max-age=86400');
+    upstream.data.pipe(res);
+  } catch (e) {
+    console.error('Media p error:', e.message);
+    res.status(502).send('Upstream fetch failed');
+  }
+});
 
 app.get('/media/img', async (req, res) => {
   try {
