@@ -362,6 +362,7 @@ app.post('/post/tiktok-photo', async (req, res) => {
       },
       { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json; charset=UTF-8' } }
     );
+    console.log('TIKTOK PHOTO MUSIC FLAG:', autoAddMusic, '->', autoAddMusic !== false);
     console.log('TIKTOK PHOTO URLS:', JSON.stringify(photoUrls));
     console.log('TIKTOK PHOTO INIT:', JSON.stringify(initRes.data));
     const publishId = initRes.data?.data?.publish_id;
