@@ -669,6 +669,29 @@ app.post('/story/compose', async (req, res) => {
   }
 });
 
+app.post('/ai/adapt', async (req, res) => {
+  try {
+    const { caption } = req.body;
+    if (!caption || !caption.trim()) {
+      return res.status(400).json({ error: 'No caption provided' });
+    }
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: 'Rewrite this social media caption for TikTok. Keep the same voice, message and tone. Changes to make: put the hook in the very first line, cut the length by roughly half, and use no more than 4 hashtags. Do not add quotes, labels, or commentary. Return only the rewritten caption.\n\nCaption:\n' + caption,
+      }],
+    });
+    const adapted = (msg.content && msg.content[0] && msg.content[0].text) ? msg.content[0].text.trim() : '';
+    console.log('AI ADAPT:', adapted);
+    res.json({ adapted });
+  } catch (error) {
+    console.error('AI adapt error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── AI: Improve Caption ───────────────────────────────
 app.post('/ai/caption', async (req, res) => {
   try {
