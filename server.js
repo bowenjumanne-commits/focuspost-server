@@ -321,6 +321,8 @@ app.get('/media/p/:id', async (req, res) => {
     console.log('MEDIA P HIT:', url);
     const upstream = await axios.get(url, { responseType: 'stream', timeout: 20000 });
     res.set('Content-Type', 'image/jpeg');
+
+
     if (upstream.headers['content-length']) res.set('Content-Length', upstream.headers['content-length']);
     res.set('Cache-Control', 'public, max-age=86400');
     upstream.data.pipe(res);
@@ -579,7 +581,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
-const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish,video.list&response_type=code&redirect_uri=https://api.outpostcreator.com/auth/tiktok/callback&state=outpost`;
+const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish&response_type=code&redirect_uri=https://api.outpostcreator.com/auth/tiktok/callback&state=outpost`;
   res.redirect(authUrl);
 });
 
