@@ -250,7 +250,9 @@ async function publishWithRetry(userId, creationId, accessToken, maxRetries = 5)
     }
   }
 }
-
+app.get('/tiktokvMd2oO9eOR94eQo4zO5jgWDzwLz8mgaJ.txt', (req, res) => {
+  res.type('text/plain').send('tiktok-developers-site-verification=vMd2oO9eOR94eQo4zO5jgWDzwLz8mgaJ');
+});
 app.get('/tiktok4deWatyxf2MWmO55hGL43GhF67B4HE1B.txt', (req, res) => {
   res.type('text/plain').send('tiktok-developers-site-verification=4deWatyxf2MWmO55hGL43GhF67B4HE1B');
 });
