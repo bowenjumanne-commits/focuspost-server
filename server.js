@@ -13,6 +13,54 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id SERIAL PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        account_id TEXT,
+        username TEXT,
+        access_token TEXT,
+        refresh_token TEXT,
+        expires_at BIGINT,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE (device_id, platform)
+      );
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scheduled_posts (
+        id SERIAL PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        fire_at BIGINT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INT DEFAULT 0,
+        post_target TEXT,
+        post_mode TEXT,
+        caption TEXT,
+        caption_tiktok TEXT,
+        media_urls TEXT,
+        media_types TEXT,
+        public_ids TEXT,
+        tt_options TEXT,
+        fail_reason TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    console.log('DB READY');
+  } catch (e) {
+    console.error('DB init failed:', e.message);
+  }
+})();
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
