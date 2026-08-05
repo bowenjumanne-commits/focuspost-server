@@ -323,6 +323,76 @@ app.post('/tiktok/status', async (req, res) => {
   }
 });
 
+app.post('/schedule/create', async (req, res) => {
+  try {
+    const { deviceId, fireAt, postTarget, postMode, caption, captionTiktok, mediaUrls, mediaTypes, publicIds, ttOptions } = req.body;
+    if (!deviceId || !fireAt) return res.status(400).json({ success: false, error: 'missing deviceId or fireAt' });
+    const maxAhead = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    if (fireAt > maxAhead) return res.status(400).json({ success: false, error: 'Can only schedule up to 30 days ahead' });
+    if (fireAt < Date.now() + 60000) return res.status(400).json({ success: false, error: 'Pick a time at least a minute from now' });
+    const r = await pool.query(
+      `INSERT INTO scheduled_posts (device_id, fire_at, post_target, post_mode, caption, caption_tiktok, media_urls, media_types, public_ids, tt_options)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+      [deviceId, fireAt, postTarget || 'instagram', postMode || 'post', caption || '', captionTiktok || '',
+       JSON.stringify(mediaUrls || []), JSON.stringify(mediaTypes || []), JSON.stringify(publicIds || []), JSON.stringify(ttOptions || {})]
+    );
+    console.log('SCHEDULED:', r.rows[0].id, 'for', new Date(Number(fireAt)).toISOString());
+    res.json({ success: true, id: r.rows[0].id });
+  } catch (e) {
+    console.error('schedule create error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/schedule/list', async (req, res) => {
+  try {
+    const { deviceId } = req.query;
+    if (!deviceId) return res.status(400).json({ success: false, error: 'missing deviceId' });
+    const r = await pool.query(
+      `SELECT id, fire_at, status, attempts, post_target, post_mode, caption, caption_tiktok, media_urls, media_types, fail_reason
+       FROM scheduled_posts WHERE device_id=$1 AND status != 'done' ORDER BY fire_at ASC`,
+      [deviceId]
+    );
+    res.json({ success: true, posts: r.rows });
+  } catch (e) {
+    console.error('schedule list error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/schedule/cancel', async (req, res) => {
+  try {
+    const { deviceId, id } = req.body;
+    const r = await pool.query('SELECT public_ids FROM scheduled_posts WHERE id=$1 AND device_id=$2', [id, deviceId]);
+    await pool.query('DELETE FROM scheduled_posts WHERE id=$1 AND device_id=$2', [id, deviceId]);
+    if (r.rows[0] && r.rows[0].public_ids) {
+      const ids = JSON.parse(r.rows[0].public_ids);
+      if (ids.length > 0) {
+        cloudinary.api.delete_resources(ids).catch(() => {});
+      }
+    }
+    console.log('SCHEDULE CANCELLED:', id);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('schedule cancel error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/schedule/reschedule', async (req, res) => {
+  try {
+    const { deviceId, id, fireAt } = req.body;
+    const maxAhead = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    if (fireAt > maxAhead) return res.status(400).json({ success: false, error: 'Can only schedule up to 30 days ahead' });
+    if (fireAt < Date.now() + 60000) return res.status(400).json({ success: false, error: 'Pick a time at least a minute from now' });
+    await pool.query("UPDATE scheduled_posts SET fire_at=$1, status='pending', attempts=0, fail_reason=NULL WHERE id=$2 AND device_id=$3", [fireAt, id, deviceId]);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('reschedule error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 app.post('/account/save', async (req, res) => {
   try {
     const { deviceId, platform, accountId, username, accessToken, refreshToken, expiresAt } = req.body;
