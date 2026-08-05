@@ -323,6 +323,37 @@ app.post('/tiktok/status', async (req, res) => {
   }
 });
 
+app.post('/account/save', async (req, res) => {
+  try {
+    const { deviceId, platform, accountId, username, accessToken, refreshToken, expiresAt } = req.body;
+    if (!deviceId || !platform) return res.status(400).json({ success: false, error: 'missing deviceId or platform' });
+    await pool.query(
+      `INSERT INTO accounts (device_id, platform, account_id, username, access_token, refresh_token, expires_at, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+       ON CONFLICT (device_id, platform)
+       DO UPDATE SET account_id=$3, username=$4, access_token=$5, refresh_token=$6, expires_at=$7, updated_at=NOW()`,
+      [deviceId, platform, accountId || null, username || null, accessToken || null, refreshToken || null, expiresAt || null]
+    );
+    console.log('ACCOUNT SAVED:', deviceId, platform);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('account save error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/account/delete', async (req, res) => {
+  try {
+    const { deviceId, platform } = req.body;
+    await pool.query('DELETE FROM accounts WHERE device_id=$1 AND platform=$2', [deviceId, platform]);
+    console.log('ACCOUNT DELETED:', deviceId, platform);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('account delete error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ─── TIKTOK ───────────────────────────────────────────────
 app.post('/tiktok/creator-info', async (req, res) => {
   try {
