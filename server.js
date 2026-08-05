@@ -920,7 +920,119 @@ app.get('/', (req, res) => {
   res.json({ status: 'FocusPost server is running!' });
 });
 
-const PORT = process.env.PORT || 3000;
+const SELF = 'http://localhost:' + (process.env.PORT || 3000);
+
+async function refreshTiktokIfNeeded(acct) {
+  const now = Date.now();
+  if (acct.expires_at && Number(acct.expires_at) > now + 300000) return acct.access_token;
+  if (!acct.refresh_token) return acct.access_token;
+  try {
+    const tokenRes = await axios.post(
+      'https://open.tiktokapis.com/v2/oauth/token/',
+      new URLSearchParams({
+        client_key: process.env.TIKTOK_CLIENT_KEY,
+        client_secret: process.env.TIKTOK_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+        refresh_token: acct.refresh_token,
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    const { access_token, refresh_token, expires_in } = tokenRes.data;
+    if (access_token) {
+      await pool.query(
+        'UPDATE accounts SET access_token=$1, refresh_token=$2, expires_at=$3, updated_at=NOW() WHERE id=$4',
+        [access_token, refresh_token || acct.refresh_token, Date.now() + (Number(expires_in) || 86400) * 1000, acct.id]
+      );
+      console.log('SCHEDULED TT TOKEN REFRESHED');
+      return access_token;
+    }
+  } catch (e) {
+    console.error('scheduled tt refresh failed:', e.response?.data || e.message);
+  }
+  return acct.access_token;
+}
+
+async function runScheduledPost(row) {
+  const target = row.post_target;
+  const mediaUrls = JSON.parse(row.media_urls || '[]');
+  const mediaTypes = JSON.parse(row.media_types || '[]');
+  const ttOptions = JSON.parse(row.tt_options || '{}');
+  const isVideo = mediaTypes[0] === 'video';
+  const accts = await pool.query('SELECT * FROM accounts WHERE device_id=$1', [row.device_id]);
+  const ig = accts.rows.find(a => a.platform === 'instagram');
+  const tt = accts.rows.find(a => a.platform === 'tiktok');
+  const errors = [];
+
+  if (target === 'instagram' || target === 'both') {
+    if (!ig) {
+      errors.push('Instagram not connected');
+    } else {
+      const isStory = row.post_mode === 'story';
+      const url = isStory ? SELF + '/post/instagram-story' : SELF + '/post/instagram';
+      const body = isStory
+        ? { mediaItems: [{ url: mediaUrls[0], type: isVideo ? 'video' : 'image' }], accessToken: ig.access_token, userId: ig.account_id }
+        : isVideo
+          ? { caption: row.caption, mediaItems: [{ url: mediaUrls[0], type: 'video' }], accessToken: ig.access_token, userId: ig.account_id }
+          : { caption: row.caption, imageUrls: mediaUrls, accessToken: ig.access_token, userId: ig.account_id };
+      const r = await axios.post(url, body).catch(e => ({ data: { error: e.response?.data || e.message } }));
+      if (r.data && r.data.error) errors.push('Instagram: ' + JSON.stringify(r.data.error).slice(0, 150));
+    }
+  }
+
+  if (target === 'tiktok' || target === 'both') {
+    if (!tt) {
+      errors.push('TikTok not connected');
+    } else {
+      const token = await refreshTiktokIfNeeded(tt);
+      const cap = (row.caption_tiktok && row.caption_tiktok.trim()) ? row.caption_tiktok : row.caption;
+      const url = isVideo ? SELF + '/post/tiktok' : SELF + '/post/tiktok-photo';
+      const body = isVideo
+        ? { accessToken: token, videoUrl: mediaUrls[0], caption: cap,
+            privacyLevel: ttOptions.privacyLevel, disableComment: ttOptions.disableComment,
+            disableDuet: ttOptions.disableDuet, disableStitch: ttOptions.disableStitch,
+            brandOrganic: ttOptions.brandOrganic, brandedContent: ttOptions.brandedContent,
+            aiGenerated: ttOptions.aiGenerated }
+        : { accessToken: token, photoUrls: mediaUrls, caption: cap, title: String(cap || '').slice(0, 90),
+            privacyLevel: ttOptions.privacyLevel, disableComment: ttOptions.disableComment,
+            brandOrganic: ttOptions.brandOrganic, brandedContent: ttOptions.brandedContent,
+            aiGenerated: ttOptions.aiGenerated, autoAddMusic: ttOptions.autoAddMusic };
+      const r = await axios.post(url, body).catch(e => ({ data: { success: false, error: e.response?.data || e.message } }));
+      if (!r.data || !r.data.success) errors.push('TikTok: ' + JSON.stringify(r.data && r.data.error).slice(0, 150));
+    }
+  }
+
+  if (errors.length > 0) throw new Error(errors.join(' | '));
+}
+
+setInterval(async () => {
+  try {
+    const due = await pool.query(
+      "SELECT * FROM scheduled_posts WHERE status='pending' AND fire_at <= $1 ORDER BY fire_at ASC LIMIT 5",
+      [Date.now()]
+    );
+    for (const row of due.rows) {
+      await pool.query("UPDATE scheduled_posts SET status='running' WHERE id=$1", [row.id]);
+      try {
+        await runScheduledPost(row);
+        await pool.query("UPDATE scheduled_posts SET status='done' WHERE id=$1", [row.id]);
+        console.log('SCHEDULE FIRED OK:', row.id);
+        const pids = JSON.parse(row.public_ids || '[]');
+        if (pids.length > 0) cloudinary.api.delete_resources(pids).catch(() => {});
+      } catch (e) {
+        const attempts = (row.attempts || 0) + 1;
+        const failed = attempts >= 3;
+        await pool.query(
+          'UPDATE scheduled_posts SET status=$1, attempts=$2, fail_reason=$3 WHERE id=$4',
+          [failed ? 'failed' : 'pending', attempts, String(e.message).slice(0, 400), row.id]
+        );
+        console.error('SCHEDULE FAILED:', row.id, 'attempt', attempts, e.message);
+      }
+    }
+  } catch (e) {
+    console.error('scheduler tick error:', e.message);
+  }
+}, 60000);
+
 app.listen(PORT, () => {
   console.log(`FocusPost server running on port ${PORT}`);
 });
