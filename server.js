@@ -466,7 +466,7 @@ app.get('/media/p/:id', async (req, res) => {
     const raw = String(req.params.id || '');
     const id = raw.replace(/\.[a-z0-9]+$/i, '');
     if (!/^[A-Za-z0-9_\-]+$/.test(id)) return res.status(400).send('Invalid id');
-    const url = 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + id + '.jpg';
+    const url = 'https://res.cloudinary.com/dmuxzxeiu/image/upload/c_limit,w_1080,h_1920,f_jpg/' + id + '.jpg';
     console.log('MEDIA P HIT:', url);
     const upstream = await axios.get(url, { responseType: 'stream', timeout: 20000 });
     res.set('Content-Type', 'image/jpeg');
@@ -958,6 +958,10 @@ async function runScheduledPost(row) {
   const mediaTypes = JSON.parse(row.media_types || '[]');
   const ttOptions = JSON.parse(row.tt_options || '{}');
   const isVideo = mediaTypes[0] === 'video';
+  const publicIds = JSON.parse(row.public_ids || '[]');
+  const igRatio = ttOptions.igRatio === 1 ? 'c_fill,g_auto,w_1080,h_1080,f_jpg' : 'c_fill,g_auto,w_1080,h_1350,f_jpg';
+  const igUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + igRatio + '/' + id + '.jpg');
+  const ttUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://api.outpostcreator.com/media/p/' + id + '.jpg');
   const accts = await pool.query('SELECT * FROM accounts WHERE device_id=$1', [row.device_id]);
   const ig = accts.rows.find(a => a.platform === 'instagram');
   const tt = accts.rows.find(a => a.platform === 'tiktok');
@@ -970,10 +974,10 @@ async function runScheduledPost(row) {
       const isStory = row.post_mode === 'story';
       const url = isStory ? SELF + '/post/instagram-story' : SELF + '/post/instagram';
       const body = isStory
-        ? { mediaItems: [{ url: mediaUrls[0], type: isVideo ? 'video' : 'image' }], accessToken: ig.access_token, userId: ig.account_id }
+        ? { mediaItems: [{ url: igUrls[0], type: isVideo ? 'video' : 'image' }], accessToken: ig.access_token, userId: ig.account_id }
         : isVideo
-          ? { caption: row.caption, mediaItems: [{ url: mediaUrls[0], type: 'video' }], accessToken: ig.access_token, userId: ig.account_id }
-          : { caption: row.caption, imageUrls: mediaUrls, accessToken: ig.access_token, userId: ig.account_id };
+          ? { caption: row.caption, mediaItems: [{ url: igUrls[0], type: 'video' }], accessToken: ig.access_token, userId: ig.account_id }
+          : { caption: row.caption, imageUrls: igUrls, accessToken: ig.access_token, userId: ig.account_id };
       const r = await axios.post(url, body).catch(e => ({ data: { error: e.response?.data || e.message } }));
       if (r.data && r.data.error) errors.push('Instagram: ' + JSON.stringify(r.data.error).slice(0, 150));
     }
@@ -987,12 +991,12 @@ async function runScheduledPost(row) {
       const cap = (row.caption_tiktok && row.caption_tiktok.trim()) ? row.caption_tiktok : row.caption;
       const url = isVideo ? SELF + '/post/tiktok' : SELF + '/post/tiktok-photo';
       const body = isVideo
-        ? { accessToken: token, videoUrl: mediaUrls[0], caption: cap,
+        ? { accessToken: token, videoUrl: ttUrls[0], caption: cap,
             privacyLevel: ttOptions.privacyLevel, disableComment: ttOptions.disableComment,
             disableDuet: ttOptions.disableDuet, disableStitch: ttOptions.disableStitch,
             brandOrganic: ttOptions.brandOrganic, brandedContent: ttOptions.brandedContent,
             aiGenerated: ttOptions.aiGenerated }
-        : { accessToken: token, photoUrls: mediaUrls, caption: cap, title: String(cap || '').slice(0, 90),
+        : { accessToken: token, photoUrls: ttUrls, caption: cap, title: String(cap || '').slice(0, 90),
             privacyLevel: ttOptions.privacyLevel, disableComment: ttOptions.disableComment,
             brandOrganic: ttOptions.brandOrganic, brandedContent: ttOptions.brandedContent,
             aiGenerated: ttOptions.aiGenerated, autoAddMusic: ttOptions.autoAddMusic };
