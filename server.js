@@ -960,7 +960,11 @@ async function runScheduledPost(row) {
   const isVideo = mediaTypes[0] === 'video';
   const publicIds = JSON.parse(row.public_ids || '[]');
   const igRatio = ttOptions.igRatio === 1 ? 'c_fill,g_center,w_1080,h_1080,f_jpg' : 'c_fill,g_center,w_1080,h_1350,f_jpg';
-  const igUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + igRatio + '/' + id + '.jpg');
+  const isStoryPost = row.post_mode === 'story';
+  const igUrls = isVideo ? mediaUrls : publicIds.map(id => isStoryPost
+    ? 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + id + '.jpg'
+    : 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + igRatio + '/' + id + '.jpg');
+  
   const ttUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://api.outpostcreator.com/media/p/' + id + '.jpg');
   const accts = await pool.query('SELECT * FROM accounts WHERE device_id=$1', [row.device_id]);
   const ig = accts.rows.find(a => a.platform === 'instagram');
@@ -974,7 +978,8 @@ async function runScheduledPost(row) {
       const isStory = row.post_mode === 'story';
       const url = isStory ? SELF + '/post/instagram-story' : SELF + '/post/instagram';
       const body = isStory
-        ? { mediaItems: [{ url: igUrls[0], type: isVideo ? 'video' : 'image' }], accessToken: ig.access_token, userId: ig.account_id }
+      ? { mediaItems: [{ url: igUrls[0], type: isVideo ? 'video' : 'image' }], mute: !!ttOptions.isMuted, accessToken: ig.access_token, userId: ig.account_id }  
+      
         : isVideo
           ? { caption: row.caption, mediaItems: [{ url: igUrls[0], type: 'video' }], accessToken: ig.access_token, userId: ig.account_id }
           : { caption: row.caption, imageUrls: igUrls, accessToken: ig.access_token, userId: ig.account_id };
