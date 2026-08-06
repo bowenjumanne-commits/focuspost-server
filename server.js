@@ -792,7 +792,7 @@ app.get('/auth/instagram/callback', async (req, res) => {
 
 // ─── TIKTOK AUTH ──────────────────────────────────────────
 app.get('/auth/tiktok/login', (req, res) => {
-const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish&response_type=code&redirect_uri=https://api.outpostcreator.com/auth/tiktok/callback&state=outpost`;
+const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish,video.list,user.info.stats,user.info.profile&response_type=code&redirect_uri=https://api.outpostcreator.com/auth/tiktok/callback&state=outpost`;
   res.redirect(authUrl);
 });
 
