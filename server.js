@@ -55,6 +55,15 @@ const pool = new Pool({
       );
     `);
     await pool.query('ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS acked BOOLEAN DEFAULT FALSE;');
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS devices (
+        device_id TEXT PRIMARY KEY,
+        push_token TEXT,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     console.log('DB READY');
   } catch (e) {
     console.error('DB init failed:', e.message);
@@ -411,6 +420,40 @@ app.post('/schedule/reschedule', async (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
+
+app.post('/device/push', async (req, res) => {
+  try {
+    const { deviceId, pushToken } = req.body;
+    if (!deviceId || !pushToken) return res.status(400).json({ success: false, error: 'missing fields' });
+    await pool.query(
+      `INSERT INTO devices (device_id, push_token, updated_at) VALUES ($1,$2,NOW())
+       ON CONFLICT (device_id) DO UPDATE SET push_token=$2, updated_at=NOW()`,
+      [deviceId, pushToken]
+    );
+    console.log('PUSH TOKEN SAVED:', deviceId);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('push token save error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+async function sendPush(deviceId, title, body) {
+  try {
+    const r = await pool.query('SELECT push_token FROM devices WHERE device_id=$1', [deviceId]);
+    const token = r.rows[0] && r.rows[0].push_token;
+    if (!token) return;
+    await axios.post('https://exp.host/--/api/v2/push/send', {
+      to: token,
+      sound: 'default',
+      title,
+      body,
+    }, { headers: { 'Content-Type': 'application/json' } });
+    console.log('PUSH SENT:', deviceId, title);
+  } catch (e) {
+    console.error('push send failed:', e.response?.data || e.message);
+  }
+}
 
 app.post('/account/save', async (req, res) => {
   try {
@@ -1044,6 +1087,7 @@ setInterval(async () => {
         await runScheduledPost(row);
         await pool.query("UPDATE scheduled_posts SET status='done' WHERE id=$1", [row.id]);
         console.log('SCHEDULE FIRED OK:', row.id);
+        sendPush(row.device_id, 'Posted', 'Your scheduled post went out.');
       } catch (e) {
         const attempts = (row.attempts || 0) + 1;
         const failed = attempts >= 3;
@@ -1052,6 +1096,7 @@ setInterval(async () => {
           [failed ? 'failed' : 'pending', attempts, String(e.message).slice(0, 400), row.id]
         );
         console.error('SCHEDULE FAILED:', row.id, 'attempt', attempts, e.message);
+        if (failed) sendPush(row.device_id, 'Post failed', String(e.message).slice(0, 120));
       }
     }
   } catch (e) {
