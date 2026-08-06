@@ -959,7 +959,7 @@ async function runScheduledPost(row) {
   const ttOptions = JSON.parse(row.tt_options || '{}');
   const isVideo = mediaTypes[0] === 'video';
   const publicIds = JSON.parse(row.public_ids || '[]');
-  const igRatio = ttOptions.igRatio === 1 ? 'c_fill,g_auto,w_1080,h_1080,f_jpg' : 'c_fill,g_auto,w_1080,h_1350,f_jpg';
+  const igRatio = ttOptions.igRatio === 1 ? 'c_fill,g_center,w_1080,h_1080,f_jpg' : 'c_fill,g_center,w_1080,h_1350,f_jpg';
   const igUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + igRatio + '/' + id + '.jpg');
   const ttUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://api.outpostcreator.com/media/p/' + id + '.jpg');
   const accts = await pool.query('SELECT * FROM accounts WHERE device_id=$1', [row.device_id]);
