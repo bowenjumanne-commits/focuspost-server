@@ -1025,8 +1025,6 @@ setInterval(async () => {
         await runScheduledPost(row);
         await pool.query("UPDATE scheduled_posts SET status='done' WHERE id=$1", [row.id]);
         console.log('SCHEDULE FIRED OK:', row.id);
-        const pids = JSON.parse(row.public_ids || '[]');
-        if (pids.length > 0) cloudinary.api.delete_resources(pids).catch(() => {});
       } catch (e) {
         const attempts = (row.attempts || 0) + 1;
         const failed = attempts >= 3;
