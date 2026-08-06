@@ -1033,6 +1033,8 @@ setInterval(async () => {
   }
 }, 60000);
 
+const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`FocusPost server running on port ${PORT}`);
 });
