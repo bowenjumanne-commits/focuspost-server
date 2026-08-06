@@ -54,6 +54,7 @@ const pool = new Pool({
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
+    await pool.query('ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS acked BOOLEAN DEFAULT FALSE;');
     console.log('DB READY');
   } catch (e) {
     console.error('DB init failed:', e.message);
@@ -356,6 +357,24 @@ app.get('/schedule/list', async (req, res) => {
     res.json({ success: true, posts: r.rows });
   } catch (e) {
     console.error('schedule list error:', e.message);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/schedule/completed', async (req, res) => {
+  try {
+    const { deviceId } = req.query;
+    if (!deviceId) return res.status(400).json({ success: false, error: 'missing deviceId' });
+    const r = await pool.query(
+      "SELECT id, fire_at, post_target, post_mode, caption, caption_tiktok, media_urls, media_types, tt_options FROM scheduled_posts WHERE device_id=$1 AND status='done' AND acked=FALSE",
+      [deviceId]
+    );
+    if (r.rows.length > 0) {
+      await pool.query("UPDATE scheduled_posts SET acked=TRUE WHERE device_id=$1 AND status='done' AND acked=FALSE", [deviceId]);
+    }
+    res.json({ success: true, posts: r.rows });
+  } catch (e) {
+    console.error('schedule completed error:', e.message);
     res.status(500).json({ success: false, error: e.message });
   }
 });
