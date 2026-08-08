@@ -461,8 +461,8 @@ app.get('/instagram/insights', async (req, res) => {
     const acct = await pool.query("SELECT access_token, account_id FROM accounts WHERE device_id=$1 AND platform='instagram'", [deviceId]);
     if (!acct.rows[0]) return res.status(400).json({ success: false, error: 'Instagram not connected for this device' });
    const accessToken = acct.rows[0].access_token;
-    console.log('INSIGHTS TOKEN len:', accessToken ? accessToken.length : 0, 'starts:', accessToken ? accessToken.slice(0, 8) : 'none', 'userId:', userId);
     const userId = acct.rows[0].account_id;
+    console.log('INSIGHTS TOKEN len:', accessToken ? accessToken.length : 0, 'starts:', accessToken ? accessToken.slice(0, 8) : 'none', 'userId:', userId);
     const media = await axios.get(
       `https://graph.instagram.com/v21.0/${userId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=10&access_token=${accessToken}`
     );
