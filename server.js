@@ -455,6 +455,43 @@ async function sendPush(deviceId, title, body) {
   }
 }
 
+app.get('/tiktok/stats', async (req, res) => {
+  try {
+    const { deviceId } = req.query;
+    const acct = await pool.query("SELECT * FROM accounts WHERE device_id=$1 AND platform='tiktok'", [deviceId]);
+    if (!acct.rows[0]) return res.status(400).json({ success: false, error: 'TikTok not connected' });
+    const token = await refreshTiktokIfNeeded(acct.rows[0]);
+    const r = await axios.get(
+      'https://open.tiktokapis.com/v2/user/info/?fields=display_name,follower_count,following_count,likes_count,video_count',
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    console.log('TT STATS:', JSON.stringify(r.data));
+    res.json({ success: true, stats: r.data?.data?.user || {} });
+  } catch (e) {
+    console.error('tt stats error:', e.response?.data || e.message);
+    res.status(500).json({ success: false, error: e.response?.data || e.message });
+  }
+});
+
+app.get('/tiktok/videos', async (req, res) => {
+  try {
+    const { deviceId } = req.query;
+    const acct = await pool.query("SELECT * FROM accounts WHERE device_id=$1 AND platform='tiktok'", [deviceId]);
+    if (!acct.rows[0]) return res.status(400).json({ success: false, error: 'TikTok not connected' });
+    const token = await refreshTiktokIfNeeded(acct.rows[0]);
+    const r = await axios.post(
+      'https://open.tiktokapis.com/v2/video/list/?fields=id,title,cover_image_url,create_time,view_count,like_count,comment_count,share_count',
+      { max_count: 20 },
+      { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } }
+    );
+    console.log('TT VIDEOS:', JSON.stringify(r.data).slice(0, 300));
+    res.json({ success: true, videos: r.data?.data?.videos || [] });
+  } catch (e) {
+    console.error('tt videos error:', e.response?.data || e.message);
+    res.status(500).json({ success: false, error: e.response?.data || e.message });
+  }
+});
+
 app.get('/instagram/insights', async (req, res) => {
   try {
    const { deviceId } = req.query;
