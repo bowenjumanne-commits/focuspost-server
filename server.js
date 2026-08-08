@@ -457,7 +457,11 @@ async function sendPush(deviceId, title, body) {
 
 app.get('/instagram/insights', async (req, res) => {
   try {
-    const { accessToken, userId } = req.query;
+   const { deviceId } = req.query;
+    const acct = await pool.query("SELECT access_token, account_id FROM accounts WHERE device_id=$1 AND platform='instagram'", [deviceId]);
+    if (!acct.rows[0]) return res.status(400).json({ success: false, error: 'Instagram not connected for this device' });
+    const accessToken = acct.rows[0].access_token;
+    const userId = acct.rows[0].account_id;
     const media = await axios.get(
       `https://graph.instagram.com/v21.0/${userId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=10&access_token=${accessToken}`
     );
