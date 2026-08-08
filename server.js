@@ -455,6 +455,34 @@ async function sendPush(deviceId, title, body) {
   }
 }
 
+app.get('/instagram/insights', async (req, res) => {
+  try {
+    const { accessToken, userId } = req.query;
+    const media = await axios.get(
+      `https://graph.instagram.com/v21.0/${userId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=10&access_token=${accessToken}`
+    );
+    const items = media.data.data || [];
+    const out = [];
+    for (const m of items) {
+      let insights = null;
+      try {
+        const ins = await axios.get(
+          `https://graph.instagram.com/v21.0/${m.id}/insights?metric=reach,shares,saved&access_token=${accessToken}`
+        );
+        insights = ins.data.data;
+      } catch (e) {
+        insights = { error: e.response?.data?.error?.message || e.message };
+      }
+      out.push({ ...m, insights });
+    }
+    console.log('IG INSIGHTS SAMPLE:', JSON.stringify(out[0]));
+    res.json({ success: true, items: out });
+  } catch (e) {
+    console.error('ig insights error:', e.response?.data || e.message);
+    res.status(500).json({ success: false, error: e.response?.data || e.message });
+  }
+});
+
 app.post('/account/save', async (req, res) => {
   try {
     const { deviceId, platform, accountId, username, accessToken, refreshToken, expiresAt } = req.body;
