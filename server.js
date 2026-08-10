@@ -1137,8 +1137,31 @@ async function runScheduledPost(row) {
             privacyLevel: ttOptions.privacyLevel, disableComment: ttOptions.disableComment,
             brandOrganic: ttOptions.brandOrganic, brandedContent: ttOptions.brandedContent,
             aiGenerated: ttOptions.aiGenerated, autoAddMusic: ttOptions.autoAddMusic };
-      const r = await axios.post(url, body).catch(e => ({ data: { success: false, error: e.response?.data || e.message } }));
-      if (!r.data || !r.data.success) errors.push('TikTok: ' + JSON.stringify(r.data && r.data.error).slice(0, 150));
+      
+            const r = await axios.post(url, body).catch(e => ({ data: { success: false, error: e.response?.data || e.message } }));
+      if (!r.data || !r.data.success) {
+        errors.push('TikTok: ' + JSON.stringify(r.data && r.data.error).slice(0, 150));
+      } else {
+        const publishId = r.data.publishId;
+        let final = null;
+        for (let i = 0; i < 20; i++) {
+          await new Promise((res) => setTimeout(res, 3000));
+          try {
+            const s = await axios.post(
+              'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+              { publish_id: publishId },
+              { headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json; charset=UTF-8' } }
+            );
+            const st = s.data && s.data.data && s.data.data.status;
+            console.log('SCHEDULED TT STATUS:', row.id, st);
+            if (st === 'PUBLISH_COMPLETE' || st === 'FAILED') { final = s.data.data; break; }
+          } catch (e) {
+            console.error('scheduled tt status error:', e.response?.data || e.message);
+          }
+        }
+        if (!final) errors.push('TikTok: still processing after 60 seconds');
+        else if (final.status === 'FAILED') errors.push('TikTok: ' + (final.fail_reason || 'rejected during processing'));
+      }
     }
   }
 
