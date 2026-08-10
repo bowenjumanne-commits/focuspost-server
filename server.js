@@ -1181,6 +1181,15 @@ setInterval(async () => {
         await pool.query("UPDATE scheduled_posts SET status='done' WHERE id=$1", [row.id]);
         console.log('SCHEDULE FIRED OK:', row.id);
         sendPush(row.device_id, 'Posted', 'Your scheduled post went out.');
+        const pids = JSON.parse(row.public_ids || '[]');
+        if (pids.length > 0) {
+          const rt = (JSON.parse(row.media_types || '[]')[0] === 'video') ? 'video' : 'image';
+          setTimeout(() => {
+            cloudinary.api.delete_resources(pids, { resource_type: rt })
+              .then(() => console.log('SCHEDULED MEDIA CLEANED:', row.id))
+              .catch((e) => console.error('cleanup failed:', e.message));
+          }, 120000);
+        }
       } catch (e) {
         const attempts = (row.attempts || 0) + 1;
         const failed = attempts >= 3;
