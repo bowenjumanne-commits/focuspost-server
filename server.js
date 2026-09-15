@@ -1104,7 +1104,7 @@ async function runScheduledPost(row) {
     ? 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + id + '.jpg'
     : 'https://res.cloudinary.com/dmuxzxeiu/image/upload/' + igRatio + '/' + id + '.jpg');
   
-  const ttUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://api.outpostcreator.com/media/p/' + id + '.jpg');
+  const ttUrls = isVideo ? mediaUrls : publicIds.map(id => 'https://api.purpost.app/media/p/' + id + '.jpg');
   const accts = await pool.query('SELECT * FROM accounts WHERE device_id=$1', [row.device_id]);
   const ig = accts.rows.find(a => a.platform === 'instagram');
   const tt = accts.rows.find(a => a.platform === 'tiktok');
