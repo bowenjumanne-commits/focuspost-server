@@ -316,6 +316,9 @@ app.get('/tiktokvMd2oO9eOR94eQo4zO5jgWDzwLz8mgaJ.txt', (req, res) => {
 app.get('/tiktok4deWatyxf2MWmO55hGL43GhF67B4HE1B.txt', (req, res) => {
   res.type('text/plain').send('tiktok-developers-site-verification=4deWatyxf2MWmO55hGL43GhF67B4HE1B');
 });
+app.get('/tiktokof2oWWlRe4xtaZeQEykAVtttnJU8z1kx.txt', (req, res) => {
+  res.type('text/plain').send('tiktok-developers-site-verification=of2oWWlRe4xtaZeQEykAVtttnJU8z1kx');
+});
 
 app.post('/tiktok/status', async (req, res) => {
   try {
@@ -877,7 +880,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         client_secret: process.env.TIKTOK_CLIENT_SECRET,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: 'https://api.purpost.app/auth/tiktok/callback',
+        redirect_uri: 'https://api.outpostcreator.com/auth/tiktok/callback',
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
