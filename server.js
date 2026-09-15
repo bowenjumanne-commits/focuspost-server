@@ -793,8 +793,7 @@ app.get('/auth/instagram/login', (req, res) => {
   console.log('Instagram login route hit');
 
   
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=28235394152788591&redirect_uri=https://api.purpost.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_insights&response_type=code`;
-
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=28235394152788591&redirect_uri=https://api.purpost.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_insights&response_type=code`;
   console.log('Redirecting to:', authUrl);
   res.redirect(authUrl);
 });
