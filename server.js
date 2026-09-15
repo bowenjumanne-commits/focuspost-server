@@ -786,7 +786,8 @@ app.get('/privacy', (req, res) => {
 app.get('/auth/instagram/login', (req, res) => {
   console.log('Instagram login route hit');
 
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=2097065204178856&redirect_uri=https://api.outpostcreator.com/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_insights&response_type=code`;
+  
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=28235394152788591&redirect_uri=https://api.purpost.app/auth/instagram/callback&scope=instagram_business_basic,instagram_business_content_publish,instagram_business_manage_comments,instagram_business_manage_insights&response_type=code`;
 
   console.log('Redirecting to:', authUrl);
   res.redirect(authUrl);
@@ -798,10 +799,10 @@ app.get('/auth/instagram/callback', async (req, res) => {
     const tokenRes = await axios.post(
       'https://api.instagram.com/oauth/access_token',
       new URLSearchParams({
-        client_id: '2097065204178856',
+                client_id: '28235394152788591',
         client_secret: process.env.INSTAGRAM_APP_SECRET,
         grant_type: 'authorization_code',
-        redirect_uri: 'https://api.outpostcreator.com/auth/instagram/callback',
+                redirect_uri: 'https://api.purpost.app/auth/instagram/callback',
         code: code,
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
