@@ -319,6 +319,9 @@ app.get('/tiktok4deWatyxf2MWmO55hGL43GhF67B4HE1B.txt', (req, res) => {
 app.get('/tiktokof2oWWlRe4xtaZeQEykAVtttnJU8z1kx.txt', (req, res) => {
   res.type('text/plain').send('tiktok-developers-site-verification=of2oWWlRe4xtaZeQEykAVtttnJU8z1kx');
 });
+app.get('/tiktokb92ctT2N4SRTvou3958hhbLanOy7HfR7.txt', (req, res) => {
+  res.type('text/plain').send('tiktok-developers-site-verification=b92ctT2N4SRTvou3958hhbLanOy7HfR7');
+});
 
 app.post('/tiktok/status', async (req, res) => {
   try {
