@@ -102,8 +102,9 @@ app.post('/post/instagram', async (req, res) => {
       if (isVideo && mute) {
         uploadOptions.transformation = [{ audio_codec: 'none' }];
       }
-      const upload = await cloudinary.uploader.upload(item.url, uploadOptions);
-      const publicUrl = upload.secure_url;
+            const skipReupload = !isVideo && typeof item.url === 'string' && item.url.includes('res.cloudinary.com');
+      const publicUrl = skipReupload ? item.url : (await cloudinary.uploader.upload(item.url, uploadOptions)).secure_url;
+      console.log('IG SOURCE URL:', publicUrl, '| reuploaded:', !skipReupload);
 
       const containerPayload = isVideo
         ? { media_type: 'REELS', video_url: publicUrl, caption: caption, access_token: accessToken }
