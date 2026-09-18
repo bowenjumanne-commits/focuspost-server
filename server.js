@@ -1208,8 +1208,9 @@ setInterval(async () => {
 
 const PORT = process.env.PORT || 3000;
 
-// ─── LEGAL PAGES ────────────────────────────────────────────────
-// Paste this block into server.js, anywhere above app.listen(...)
+// ─── LEGAL PAGES v2 ─────────────────────────────────────────────
+// REPLACES the earlier legal block in server.js.
+// Delete the old "LEGAL PAGES" block first, then paste this in its place.
 // Serves:  https://api.purpost.app/privacy   and   /terms
 
 const LEGAL_CSS = `
@@ -1221,12 +1222,16 @@ const LEGAL_CSS = `
   h1{color:#fff;font-size:30px;font-weight:800;letter-spacing:-0.6px;margin-bottom:6px}
   .date{color:#64748b;font-size:13px;margin-bottom:38px}
   h2{color:#fff;font-size:18px;font-weight:700;margin:34px 0 10px}
+  h3{color:#dbe3ec;font-size:15.5px;font-weight:700;margin:22px 0 8px}
   p{margin-bottom:14px}
   ul{margin:0 0 16px 20px}
   li{margin-bottom:8px}
   a{color:#f97316;text-decoration:none}
   a:hover{text-decoration:underline}
   strong{color:#e7edf5}
+  .box{background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.22);
+       border-radius:10px;padding:16px 18px;margin:20px 0}
+  .box p:last-child{margin-bottom:0}
   .foot{margin-top:52px;padding-top:22px;border-top:1px solid rgba(255,255,255,0.08);
         color:#55637a;font-size:13px}
 `;
@@ -1238,8 +1243,8 @@ function legalPage(title, bodyHtml) {
 <body><div class="wrap">
 <div class="brand">Purpost</div>
 ${bodyHtml}
-<div class="foot">Purpost is operated by Bowen Digital LLC.<br>
-Questions: <a href="mailto:support@purpost.app">support@purpost.app</a></div>
+<div class="foot">Purpost is operated by Bowen Digital LLC, a Florida limited liability company.<br>
+Contact: <a href="mailto:support@purpost.app">support@purpost.app</a></div>
 </div></body></html>`;
 }
 
@@ -1248,68 +1253,90 @@ app.get('/privacy', (req, res) => {
 <h1>Privacy Policy</h1>
 <div class="date">Last updated: September 18, 2026</div>
 
-<p>Purpost is a mobile application that lets you publish content to Instagram and TikTok from one place. This policy explains what we collect, why, and what we do with it.</p>
+<p>Purpost is a mobile application that lets you publish content to Instagram and TikTok from one place. This policy explains what we collect, why we collect it, who we share it with, and how to get rid of it.</p>
 
-<p><strong>We do not sell your data. We do not use it for advertising. We do not share it with anyone except the services listed below that are required to make the app work.</strong></p>
+<div class="box">
+<p><strong>We do not sell your personal information. We do not share it with advertisers. We do not use your content to train AI models.</strong> We share data only with the service providers listed below, and only to the extent required to make the app work.</p>
+</div>
 
-<h2>What we collect</h2>
-<p>Purpost has no user accounts. We never ask for your name, email address, phone number, date of birth, payment details, location, or contacts.</p>
+<h2>1. Who we are</h2>
+<p>Purpost is operated by Bowen Digital LLC, a Florida limited liability company ("we," "us," "our"). You can reach us at <a href="mailto:support@purpost.app">support@purpost.app</a>.</p>
+
+<h2>2. What we collect</h2>
+<p>Purpost has no user accounts. We never ask for your name, email address, phone number, date of birth, payment details, precise location, or contacts. We do not use advertising identifiers or third-party analytics or tracking SDKs.</p>
 <ul>
-  <li><strong>A device identifier.</strong> A random ID generated on your device the first time you open the app. It links your connected accounts and scheduled posts to your device. It is not derived from any hardware identifier and cannot identify you personally.</li>
-  <li><strong>Social account credentials.</strong> When you connect Instagram or TikTok, those platforms issue us an access token. We store the token, your account ID, and your username so we can publish on your behalf.</li>
-  <li><strong>Content you create.</strong> Photos, videos, and captions you choose to publish or schedule.</li>
-  <li><strong>Scheduled post details.</strong> What you scheduled, when it should go out, and whether it succeeded.</li>
-  <li><strong>A push notification token</strong>, if you allow notifications, so we can tell you when a scheduled post publishes or fails.</li>
+  <li><strong>A device identifier.</strong> A random value generated on your device the first time you open the app. It links your connected accounts and scheduled posts to your installation. It is not derived from any hardware identifier, is not shared with third parties, and does not identify you personally.</li>
+  <li><strong>Social account credentials.</strong> When you connect Instagram or TikTok, that platform issues us an access token (and for TikTok, a refresh token). We store the token, your platform account ID, and your username so we can publish on your behalf.</li>
+  <li><strong>Content you choose to publish.</strong> Photos, videos, and captions you submit through the app.</li>
+  <li><strong>Scheduled post details.</strong> What you scheduled, when it should publish, and whether it succeeded or failed.</li>
+  <li><strong>A push notification token</strong>, only if you grant notification permission, so we can tell you when a scheduled post publishes or fails.</li>
+  <li><strong>Server logs.</strong> Our hosting provider records standard request logs, which may include IP address and timestamps, for security and troubleshooting.</li>
 </ul>
 
-<h2>How we use it</h2>
+<h2>3. Why we collect it</h2>
 <ul>
   <li>To publish and schedule your posts on the platforms you connect</li>
   <li>To show you your own posts, comments, and performance data from those platforms</li>
-  <li>To notify you about scheduled posts</li>
-  <li>To generate caption suggestions, when you ask for them</li>
+  <li>To send you notifications about your scheduled posts</li>
+  <li>To generate caption suggestions, only when you request them</li>
+  <li>To keep the service secure, diagnose failures, and prevent abuse</li>
 </ul>
-<p>We do not use your content to train any model, and we do not read, analyse, or repurpose it for any other reason.</p>
 
-<h2>Services we rely on</h2>
-<p>Purpost cannot function without these providers. Each receives only what it needs:</p>
+<h2>4. Service providers</h2>
+<p>Purpost cannot function without these providers. Each receives only what it needs, and none are permitted to use your data for their own purposes:</p>
 <ul>
-  <li><strong>Meta (Instagram)</strong> — publishing, comments, and insights for your connected Instagram account</li>
+  <li><strong>Meta Platforms (Instagram)</strong> — publishing, comments, and insights for your connected Instagram account</li>
   <li><strong>TikTok</strong> — publishing and post data for your connected TikTok account</li>
-  <li><strong>Cloudinary</strong> — temporary hosting of your media so Instagram and TikTok can fetch it during publishing</li>
-  <li><strong>Anthropic</strong> — caption suggestions. Only the caption text you submit is sent, and only when you tap an AI option</li>
+  <li><strong>Cloudinary</strong> — hosting of your media so the platforms can retrieve it during publishing</li>
+  <li><strong>Anthropic</strong> — caption suggestions. Only the caption text you submit is sent, and only when you tap an AI option. It is not used to train models.</li>
   <li><strong>Expo</strong> — delivery of push notifications</li>
   <li><strong>Railway</strong> — hosting for our server and database</li>
 </ul>
+<p>We may also disclose information if required by law, to enforce our Terms, or to protect the rights, safety, or property of our users or ourselves.</p>
 
-<h2>How long we keep it</h2>
+<h2>5. Where your data is held</h2>
+<p>Our servers and database are located in the United States. If you use Purpost from outside the United States, your information will be transferred to and processed in the United States, where privacy laws may differ from those in your country.</p>
+
+<h2>6. How long we keep it</h2>
 <ul>
-  <li><strong>Access tokens</strong> are kept until you disconnect the account or the platform expires them. Disconnecting deletes them from our database.</li>
-  <li><strong>Media</strong> is uploaded only so the platforms can retrieve it during publishing, and is removed once it is no longer needed for that purpose.</li>
-  <li><strong>Scheduled posts</strong> are kept until they publish or you cancel them.</li>
-  <li><strong>Post history</strong> is stored on your device, not on our servers.</li>
+  <li><strong>Access tokens</strong> are retained until you disconnect the account, the platform expires them, or you request deletion.</li>
+  <li><strong>Media attached to scheduled posts</strong> is deleted automatically after the post publishes.</li>
+  <li><strong>Media from immediate posts</strong> is uploaded so the platforms can retrieve it during publishing and may remain in our media provider's storage after publishing. You can request its deletion at any time by emailing us.</li>
+  <li><strong>Scheduled posts</strong> are retained until they publish or you cancel them.</li>
+  <li><strong>Drafts and post history</strong> are stored on your device, not on our servers.</li>
+  <li><strong>Server logs</strong> are retained on a rolling basis by our hosting provider for operational purposes.</li>
 </ul>
 
-<h2>Deleting your data</h2>
-<p>You can remove everything we hold at any time:</p>
+<h2>7. Your choices and rights</h2>
+<h3>Deleting your data</h3>
 <ul>
-  <li>Disconnect Instagram or TikTok in Settings to delete that account's tokens</li>
-  <li>Delete the app to remove all locally stored data, including drafts and history</li>
-  <li>Email <a href="mailto:support@purpost.app">support@purpost.app</a> to request full deletion of any server-side data tied to your device</li>
+  <li><strong>Disconnect Instagram or TikTok in Settings.</strong> This deletes that account's tokens from our database.</li>
+  <li><strong>Delete the app.</strong> This removes all locally stored data, including drafts and post history.</li>
+  <li><strong>Email <a href="mailto:support@purpost.app">support@purpost.app</a></strong> to request deletion of any remaining server-side data tied to your device, including stored media. We will action requests within 30 days.</li>
 </ul>
-<p>You can also revoke Purpost's access directly from Instagram's or TikTok's own settings at any time.</p>
+<h3>Revoking platform access</h3>
+<p>Disconnecting in Purpost removes the token from our database. Because the token was issued by Instagram or TikTok, it may remain valid on their systems until it expires. To revoke it completely, remove Purpost from that platform's own app permissions — Instagram: Settings → Apps and websites; TikTok: Settings → Security → Manage app permissions.</p>
 
-<h2>Security</h2>
-<p>All traffic between the app, our server, and the platforms uses HTTPS. Access tokens are stored in a private database that is not publicly reachable. No system is perfectly secure, and we cannot guarantee absolute security, but we limit what we collect specifically to reduce what could ever be exposed.</p>
+<h3>If you are in California</h3>
+<p>Under the CCPA/CPRA you have the right to know what personal information we collect, to request deletion, to correct inaccurate information, and not to be discriminated against for exercising those rights. <strong>We do not sell or share personal information as those terms are defined under California law.</strong> To exercise any right, email <a href="mailto:support@purpost.app">support@purpost.app</a>.</p>
 
-<h2>Children</h2>
-<p>Purpost is not directed to children under 13, and we do not knowingly collect information from them. Instagram and TikTok also require users to be at least 13.</p>
+<h3>If you are in the EU, EEA or UK</h3>
+<p>Our lawful basis for processing is performance of a contract — we process your data to deliver the service you asked for — and, for security and troubleshooting, our legitimate interests. You have the right to access, correct, delete, restrict, or object to processing of your personal data, and the right to data portability. You may also lodge a complaint with your local supervisory authority. To exercise any right, email <a href="mailto:support@purpost.app">support@purpost.app</a>.</p>
 
-<h2>Changes</h2>
-<p>If this policy changes materially, we will update the date above and, where appropriate, notify you in the app.</p>
+<h2>8. Security</h2>
+<p>All traffic between the app, our servers, and the platforms uses HTTPS. Access tokens are stored in a private database that is not publicly reachable, and we deliberately collect as little as possible so there is less to expose. No system is perfectly secure, and we cannot guarantee absolute security. If we become aware of a breach affecting your information, we will notify affected users and any regulator required by law, without undue delay.</p>
 
-<h2>Contact</h2>
-<p>Questions about this policy or your data: <a href="mailto:support@purpost.app">support@purpost.app</a></p>
+<h2>9. Children</h2>
+<p>Purpost is not directed to children under 13, and we do not knowingly collect personal information from them. Instagram and TikTok also require users to be at least 13. If you believe a child under 13 has provided us information, email us and we will delete it.</p>
+
+<h2>10. Third-party services</h2>
+<p>Purpost links to and integrates with services we do not control, including Instagram and TikTok. Their handling of your data is governed by their own privacy policies, not this one.</p>
+
+<h2>11. Changes to this policy</h2>
+<p>We may update this policy. If the change is material, we will update the date above and notify you in the app before it takes effect. Continued use after an update means you accept the revised policy.</p>
+
+<h2>12. Contact</h2>
+<p>Questions, requests, or complaints: <a href="mailto:support@purpost.app">support@purpost.app</a></p>
 `));
 });
 
@@ -1318,48 +1345,84 @@ app.get('/terms', (req, res) => {
 <h1>Terms of Service</h1>
 <div class="date">Last updated: September 18, 2026</div>
 
-<p>These terms govern your use of Purpost, operated by Bowen Digital LLC. By using the app, you agree to them.</p>
+<p>These Terms of Service ("Terms") are a binding agreement between you and Bowen Digital LLC, a Florida limited liability company ("we," "us," "our"), governing your use of the Purpost mobile application and related services (the "Service"). By downloading, accessing, or using the Service, you agree to these Terms. If you do not agree, do not use the Service.</p>
 
-<h2>What Purpost does</h2>
-<p>Purpost lets you create a post once and publish it to Instagram and TikTok. We provide the tool. We do not host, distribute, or control what you publish — those platforms do.</p>
+<h2>1. What Purpost does</h2>
+<p>Purpost lets you create a post once and publish it to Instagram and TikTok. We provide a tool. We do not host, distribute, moderate, or control what you publish — the platforms you publish to do that, under their own rules.</p>
 
-<h2>Your account and content</h2>
+<h2>2. Eligibility</h2>
+<p>You must be at least 13 years old to use the Service, and old enough to form a binding contract where you live. If you use the Service on behalf of a business, you represent that you are authorised to bind that business to these Terms.</p>
+
+<h2>3. Licence</h2>
+<p>We grant you a limited, personal, non-exclusive, non-transferable, revocable licence to use the Service for its intended purpose. You may not sublicense, resell, or make the Service available to third parties.</p>
+
+<h2>4. Your content</h2>
 <ul>
-  <li>You must be at least 13 years old to use Purpost.</li>
-  <li>You keep all rights to the content you publish. We claim no ownership of it.</li>
-  <li>You are responsible for the content you post and for having the rights to use it.</li>
-  <li>You agree not to use Purpost to publish content that is unlawful, infringing, or that violates Instagram's or TikTok's own rules.</li>
+  <li><strong>You keep all rights to your content.</strong> We claim no ownership of anything you publish through Purpost.</li>
+  <li>You grant us a limited licence to store, process, format, and transmit your content solely to deliver the Service — publishing it where you tell us to. This licence ends when the content is deleted from our systems.</li>
+  <li>You are solely responsible for your content and for holding all rights, licences, and permissions necessary to publish it, including for any music, images, or footage you did not create.</li>
 </ul>
 
-<h2>Connected platforms</h2>
-<p>Publishing through Purpost also means agreeing to the terms of the platform you publish to. Those platforms can change their APIs, restrict access, or remove content at any time, and that may affect what Purpost can do. We do not control those decisions and are not responsible for them.</p>
+<h2>5. Acceptable use</h2>
+<p>You agree not to use the Service to:</p>
+<ul>
+  <li>Publish content that is unlawful, defamatory, harassing, hateful, sexually exploitative, or that infringes anyone's intellectual property or privacy rights</li>
+  <li>Violate Instagram's, TikTok's, or Apple's terms, policies, or platform rules</li>
+  <li>Send spam, engage in coordinated inauthentic behaviour, or publish automated bulk content in violation of platform rules</li>
+  <li>Reverse engineer, decompile, or attempt to extract source code from the Service</li>
+  <li>Interfere with, overload, or attempt to gain unauthorised access to the Service, our servers, or other users' data</li>
+  <li>Use the Service to build a competing product</li>
+</ul>
+<p>We may suspend or terminate access immediately for any violation of this section.</p>
 
-<h2>Availability</h2>
-<p>We work to keep Purpost running, but we do not guarantee uninterrupted service. Posts may fail for reasons outside our control, including platform outages, rate limits, expired credentials, or media that a platform rejects. Purpost reports failures to you when it can detect them.</p>
+<h2>6. Connected platforms</h2>
+<p>Using Purpost to publish means you also agree to the terms of the platform you publish to. Those platforms may change their APIs, restrict or revoke access, rate-limit requests, reject media, or remove your content at any time and without notice to us. <strong>We do not control those decisions and are not responsible for them.</strong> Features of the Service may change or stop working as a result.</p>
 
-<h2>Acceptable use</h2>
-<p>You agree not to reverse engineer the app, interfere with its operation, attempt to access other users' data, or use it to send spam or automated bulk content in violation of platform rules.</p>
+<h2>7. Intellectual property complaints</h2>
+<p>If you believe content published through Purpost infringes your copyright, note that we do not host published content — it lives on Instagram or TikTok, and those platforms operate their own takedown processes, which are the fastest route. You may also contact us at <a href="mailto:support@purpost.app">support@purpost.app</a> with details of the work, the allegedly infringing material, your contact information, and a statement made in good faith. We will respond to valid notices and may terminate the accounts of repeat infringers.</p>
 
-<h2>No warranty</h2>
-<p>Purpost is provided "as is," without warranties of any kind, express or implied, including fitness for a particular purpose. You use it at your own risk.</p>
+<h2>8. Feedback</h2>
+<p>If you send us ideas, suggestions, or feedback, you grant us an unrestricted, royalty-free right to use them without obligation or compensation to you.</p>
 
-<h2>Limitation of liability</h2>
-<p>To the fullest extent permitted by law, Bowen Digital LLC is not liable for any indirect, incidental, or consequential damages, or for lost posts, lost reach, lost revenue, or lost data arising from your use of Purpost.</p>
+<h2>9. Service availability and pre-release status</h2>
+<p>We work to keep the Service running but do not guarantee it will be uninterrupted, timely, secure, or error-free. Posts may fail for reasons outside our control, including platform outages, rate limits, expired credentials, or media a platform rejects. The Service may be offered in beta or early-access form and may contain defects. We may modify, suspend, or discontinue any part of the Service at any time.</p>
 
-<h2>Ending use</h2>
-<p>You can stop using Purpost at any time by disconnecting your accounts and deleting the app. We may suspend access if these terms are being violated or if required by a platform we depend on.</p>
+<h2>10. Disclaimer of warranties</h2>
+<p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT POSTS WILL PUBLISH SUCCESSFULLY, THAT DATA WILL NOT BE LOST, OR THAT THE SERVICE WILL MEET YOUR REQUIREMENTS. Some jurisdictions do not allow the exclusion of implied warranties, so parts of this section may not apply to you.</p>
 
-<h2>Changes</h2>
-<p>We may update these terms. Continued use after an update means you accept the revised version.</p>
+<h2>11. Limitation of liability</h2>
+<p>TO THE FULLEST EXTENT PERMITTED BY LAW, BOWEN DIGITAL LLC AND ITS MEMBERS, OFFICERS, AND AGENTS WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR FOR ANY LOST POSTS, LOST CONTENT, LOST REACH, LOST FOLLOWERS, LOST PROFITS, LOST REVENUE, LOST DATA, OR BUSINESS INTERRUPTION, ARISING FROM OR RELATED TO YOUR USE OF THE SERVICE, WHETHER BASED IN CONTRACT, TORT, OR ANY OTHER THEORY, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>
+<p>OUR TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICE WILL NOT EXCEED THE GREATER OF (A) THE TOTAL AMOUNT YOU PAID US IN THE TWELVE MONTHS BEFORE THE CLAIM AROSE, OR (B) ONE HUNDRED U.S. DOLLARS ($100).</p>
+<p>Some jurisdictions do not allow certain limitations, so parts of this section may not apply to you.</p>
 
-<h2>Governing law</h2>
-<p>These terms are governed by the laws of the State of Florida, without regard to conflict of law principles.</p>
+<h2>12. Indemnification</h2>
+<p>You agree to indemnify, defend, and hold harmless Bowen Digital LLC and its members, officers, and agents from any claims, demands, damages, losses, liabilities, and expenses (including reasonable legal fees) arising from or related to: (a) your content; (b) your use of the Service; (c) your violation of these Terms; (d) your violation of any platform's terms or policies; or (e) your violation of any law or the rights of any third party.</p>
 
-<h2>Contact</h2>
+<h2>13. Termination</h2>
+<p>You may stop using the Service at any time by disconnecting your accounts and deleting the app. We may suspend or terminate your access at any time, with or without notice, if you violate these Terms, if required by a platform we depend on, or if we discontinue the Service. Sections 4, 8, 10, 11, 12, 14 and 15 survive termination.</p>
+
+<h2>14. Disputes and governing law</h2>
+<p><strong>Informal resolution first.</strong> If you have a dispute, email <a href="mailto:support@purpost.app">support@purpost.app</a> and we will try in good faith to resolve it within 30 days before either side starts formal proceedings.</p>
+<p>These Terms are governed by the laws of the State of Florida, without regard to its conflict of law principles. You and we agree that any dispute not resolved informally will be brought exclusively in the state or federal courts located in Florida, and you consent to the personal jurisdiction of those courts. Nothing here prevents either party from seeking injunctive relief, or from bringing an individual claim in small claims court.</p>
+
+<h2>15. General</h2>
+<ul>
+  <li><strong>Entire agreement.</strong> These Terms and the Privacy Policy are the entire agreement between you and us regarding the Service.</li>
+  <li><strong>Severability.</strong> If any provision is found unenforceable, the rest remains in effect and the unenforceable provision will be limited to the minimum extent necessary.</li>
+  <li><strong>No waiver.</strong> Our failure to enforce any provision is not a waiver of it.</li>
+  <li><strong>Assignment.</strong> You may not assign these Terms. We may assign them in connection with a merger, acquisition, or sale of assets.</li>
+  <li><strong>Force majeure.</strong> We are not liable for failures caused by events beyond our reasonable control.</li>
+  <li><strong>Apple.</strong> If you obtained the app from the App Store, you acknowledge these Terms are between you and us, not Apple; Apple has no obligation to provide support or handle any claim relating to the app; and Apple is a third-party beneficiary of these Terms with the right to enforce them.</li>
+</ul>
+
+<h2>16. Changes</h2>
+<p>We may update these Terms. If a change is material, we will update the date above and notify you in the app. Continued use after an update means you accept the revised Terms.</p>
+
+<h2>17. Contact</h2>
 <p><a href="mailto:support@purpost.app">support@purpost.app</a></p>
 `));
 });
-// ─── END LEGAL PAGES ────────────────────────────────────────────
+// ─── END LEGAL PAGES v2 ─────────────────────────────────────────
 
 app.listen(PORT, () => {
   console.log(`FocusPost server running on port ${PORT}`);
