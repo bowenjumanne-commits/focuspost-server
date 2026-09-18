@@ -871,7 +871,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         client_secret: process.env.TIKTOK_CLIENT_SECRET,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: 'https://api.outpostcreator.com/auth/tiktok/callback',
+        redirect_uri: 'https://api.purpost.app/auth/tiktok/callback',
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
