@@ -877,6 +877,11 @@ app.get('/auth/tiktok/callback', async (req, res) => {
     );
    console.log('TIKTOK TOKEN RESPONSE:', JSON.stringify(tokenRes.data));
     const { access_token, open_id, refresh_token, expires_in } = tokenRes.data;
+    if (!access_token) {
+      const reason = (tokenRes.data && (tokenRes.data.error_description || tokenRes.data.error)) || 'login_failed';
+      console.error('TikTok token exchange failed:', reason);
+      return res.redirect('outpost://auth/tiktok?error=' + encodeURIComponent(reason));
+    }
     res.redirect(`outpost://auth/tiktok?token=${access_token}&userId=${open_id}&refreshToken=${refresh_token}&expiresIn=${expires_in}`);
     
     
