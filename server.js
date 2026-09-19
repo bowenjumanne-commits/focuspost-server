@@ -77,9 +77,21 @@ const pool = new Pool({
 })();
 
 
- const app = express();
+ const rateLimit = require('express-rate-limit');
+
+const app = express();
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.headers['x-device-secret'] || req.ip,
+  message: { error: 'You have used a lot of AI suggestions. Try again in a bit.' },
+});
 
 // --- DEVICE AUTH ---
 async function deviceAuth(req, res, next) {
@@ -1013,7 +1025,7 @@ app.post('/story/compose', async (req, res) => {
   }
 });
 
-app.post('/ai/adapt', async (req, res) => {
+app.post('/ai/adapt', aiLimiter, async (req, res) => {
   try {
     const { caption } = req.body;
     if (!caption || !caption.trim()) {
@@ -1037,7 +1049,7 @@ app.post('/ai/adapt', async (req, res) => {
 });
 
 // ─── AI: Improve Caption ───────────────────────────────
-app.post('/ai/caption', async (req, res) => {
+app.post('/ai/caption', aiLimiter, async (req, res) => {
   try {
     const { caption } = req.body;
     if (!caption || !caption.trim()) {
@@ -1062,7 +1074,7 @@ app.post('/ai/caption', async (req, res) => {
 });
 
 // ─── AI: Suggest Hashtags ──────────────────────────────
-app.post('/ai/hashtags', async (req, res) => {
+app.post('/ai/hashtags', aiLimiter, async (req, res) => {
   try {
     const { caption } = req.body;
     if (!caption || !caption.trim()) {
