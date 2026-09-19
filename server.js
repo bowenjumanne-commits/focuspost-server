@@ -915,7 +915,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
-   console.log('TIKTOK TOKEN RESPONSE:', JSON.stringify(tokenRes.data));
+   console.log('TIKTOK TOKEN RESPONSE ok?', !!tokenRes.data.access_token, '| open_id:', tokenRes.data.open_id, '| expires_in:', tokenRes.data.expires_in, tokenRes.data.error || '');
     const { access_token, open_id, refresh_token, expires_in } = tokenRes.data;
     if (!access_token) {
       const reason = (tokenRes.data && (tokenRes.data.error_description || tokenRes.data.error)) || 'login_failed';
