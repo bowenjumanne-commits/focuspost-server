@@ -102,7 +102,7 @@ app.post('/post/instagram', async (req, res) => {
       if (isVideo && mute) {
         uploadOptions.transformation = [{ audio_codec: 'none' }];
       }
-            const skipReupload = !isVideo && typeof item.url === 'string' && item.url.includes('res.cloudinary.com');
+       const skipReupload = typeof item.url === 'string' && item.url.includes('res.cloudinary.com') && !(isVideo && mute);
       const publicUrl = skipReupload ? item.url : (await cloudinary.uploader.upload(item.url, uploadOptions)).secure_url;
       console.log('IG SOURCE URL:', publicUrl, '| reuploaded:', !skipReupload);
 
@@ -110,10 +110,13 @@ app.post('/post/instagram', async (req, res) => {
         ? { media_type: 'REELS', video_url: publicUrl, caption: caption, access_token: accessToken }
         : { image_url: publicUrl, caption: caption, access_token: accessToken };
 
+      console.log('IG CONTAINER CREATE start');
       const containerRes = await axios.post(
         `https://graph.instagram.com/v18.0/${userId}/media`,
-        containerPayload
+        containerPayload,
+        { timeout: 120000 }
       );
+      console.log('IG CONTAINER CREATE done:', containerRes.data.id);
       const containerId = containerRes.data.id;
 
       if (isVideo) {
