@@ -62,6 +62,12 @@ const pool = new Pool({
         push_token TEXT,
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS device_auth (
+        device_id TEXT PRIMARY KEY,
+        secret TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     console.log('DB READY');
