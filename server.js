@@ -77,9 +77,40 @@ const pool = new Pool({
 })();
 
 
-const app = express();
+ const app = express();
 app.use(cors());
 app.use(express.json());
+
+// --- DEVICE AUTH ---
+async function deviceAuth(req, res, next) {
+  const deviceId = (req.body && req.body.deviceId) || (req.query && req.query.deviceId);
+  const secret = req.headers['x-device-secret'];
+  if (!deviceId) return res.status(400).json({ error: 'missing deviceId' });
+  if (!secret || String(secret).length < 20) {
+    console.log('DEVICE AUTH: no secret sent for', deviceId);
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  try {
+    const r = await pool.query('SELECT secret FROM device_auth WHERE device_id = $1', [deviceId]);
+    if (r.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO device_auth (device_id, secret) VALUES ($1, $2) ON CONFLICT (device_id) DO NOTHING',
+        [deviceId, secret]
+      );
+      console.log('DEVICE AUTH: registered new device', deviceId);
+      return next();
+    }
+    if (r.rows[0].secret !== secret) {
+      console.log('DEVICE AUTH: REJECTED', deviceId);
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+    next();
+  } catch (e) {
+    console.error('deviceAuth error:', e.message);
+    return res.status(500).json({ error: 'auth check failed' });
+  }
+}
+// --- END DEVICE AUTH ---
 
 
 // ─── INSTAGRAM ───────────────────────────────────────────
@@ -349,7 +380,7 @@ app.post('/tiktok/status', async (req, res) => {
   }
 });
 
-app.post('/schedule/create', async (req, res) => {
+app.post('/schedule/create', deviceAuth, async (req, res) => {
   try {
     const { deviceId, fireAt, postTarget, postMode, caption, captionTiktok, mediaUrls, mediaTypes, publicIds, ttOptions } = req.body;
     if (!deviceId || !fireAt) return res.status(400).json({ success: false, error: 'missing deviceId or fireAt' });
@@ -370,7 +401,7 @@ app.post('/schedule/create', async (req, res) => {
   }
 });
 
-app.get('/schedule/list', async (req, res) => {
+app.get('/schedule/list', deviceAuth, async (req, res) => {
   try {
     const { deviceId } = req.query;
     if (!deviceId) return res.status(400).json({ success: false, error: 'missing deviceId' });
@@ -386,7 +417,7 @@ app.get('/schedule/list', async (req, res) => {
   }
 });
 
-app.get('/schedule/completed', async (req, res) => {
+app.get('/schedule/completed', deviceAuth, async (req, res) => {
   try {
     const { deviceId } = req.query;
     if (!deviceId) return res.status(400).json({ success: false, error: 'missing deviceId' });
@@ -404,7 +435,7 @@ app.get('/schedule/completed', async (req, res) => {
   }
 });
 
-app.post('/schedule/cancel', async (req, res) => {
+app.post('/schedule/cancel', deviceAuth, async (req, res) => {
   try {
     const { deviceId, id } = req.body;
     const r = await pool.query('SELECT public_ids FROM scheduled_posts WHERE id=$1 AND device_id=$2', [id, deviceId]);
@@ -423,7 +454,7 @@ app.post('/schedule/cancel', async (req, res) => {
   }
 });
 
-app.post('/schedule/reschedule', async (req, res) => {
+app.post('/schedule/reschedule', deviceAuth, async (req, res) => {
   try {
     const { deviceId, id, fireAt } = req.body;
     const maxAhead = Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -437,7 +468,7 @@ app.post('/schedule/reschedule', async (req, res) => {
   }
 });
 
-app.post('/device/push', async (req, res) => {
+app.post('/device/push', deviceAuth, async (req, res) => {
   try {
     const { deviceId, pushToken } = req.body;
     if (!deviceId || !pushToken) return res.status(400).json({ success: false, error: 'missing fields' });
@@ -471,7 +502,7 @@ async function sendPush(deviceId, title, body) {
   }
 }
 
-app.get('/tiktok/stats', async (req, res) => {
+app.get('/tiktok/stats', deviceAuth, async (req, res) => {
   try {
     const { deviceId } = req.query;
     const acct = await pool.query("SELECT * FROM accounts WHERE device_id=$1 AND platform='tiktok'", [deviceId]);
@@ -489,7 +520,7 @@ app.get('/tiktok/stats', async (req, res) => {
   }
 });
 
-app.get('/tiktok/videos', async (req, res) => {
+app.get('/tiktok/videos', deviceAuth, async (req, res) => {
   try {
     const { deviceId } = req.query;
     const acct = await pool.query("SELECT * FROM accounts WHERE device_id=$1 AND platform='tiktok'", [deviceId]);
@@ -508,7 +539,7 @@ app.get('/tiktok/videos', async (req, res) => {
   }
 });
 
-app.get('/instagram/insights', async (req, res) => {
+app.get('/instagram/insights', deviceAuth, async (req, res) => {
   try {
    const { deviceId } = req.query;
     const acct = await pool.query("SELECT access_token, account_id FROM accounts WHERE device_id=$1 AND platform='instagram'", [deviceId]);
@@ -541,7 +572,7 @@ app.get('/instagram/insights', async (req, res) => {
   }
 });
 
-app.post('/account/save', async (req, res) => {
+app.post('/account/save', deviceAuth, async (req, res) => {
   try {
     const { deviceId, platform, accountId, username, accessToken, refreshToken, expiresAt } = req.body;
     if (!deviceId || !platform) return res.status(400).json({ success: false, error: 'missing deviceId or platform' });
@@ -560,7 +591,7 @@ app.post('/account/save', async (req, res) => {
   }
 });
 
-app.post('/account/delete', async (req, res) => {
+app.post('/account/delete', deviceAuth, async (req, res) => {
   try {
     const { deviceId, platform } = req.body;
     await pool.query('DELETE FROM accounts WHERE device_id=$1 AND platform=$2', [deviceId, platform]);
