@@ -302,6 +302,7 @@ const { mediaId, accessToken } = req.query;
   const response = await axios.get(
       `https://graph.instagram.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`
     );
+    console.log('IG COMMENTS for', mediaId, '->', JSON.stringify(response.data));
     res.json({ success: true, data: response.data.data });
   } catch (error) {
     console.error('Get comments error:', error.response?.data || error.message);
