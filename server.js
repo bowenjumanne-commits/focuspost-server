@@ -152,7 +152,10 @@ app.post('/post/instagram', async (req, res) => {
         uploadOptions.transformation = [{ audio_codec: 'none' }];
       }
        const skipReupload = typeof item.url === 'string' && item.url.includes('res.cloudinary.com') && !(isVideo && mute);
-      const publicUrl = skipReupload ? item.url : (await cloudinary.uploader.upload(item.url, uploadOptions)).secure_url;
+      let publicUrl = skipReupload ? item.url : (await cloudinary.uploader.upload(item.url, uploadOptions)).secure_url;
+      if (!isVideo && publicUrl.includes('/image/upload/') && !publicUrl.includes('f_jpg')) {
+        publicUrl = publicUrl.replace('/image/upload/', '/image/upload/c_limit,w_1440,f_jpg/');
+      }
       console.log('IG SOURCE URL:', publicUrl, '| reuploaded:', !skipReupload);
 
       const containerPayload = isVideo
@@ -160,11 +163,25 @@ app.post('/post/instagram', async (req, res) => {
         : { image_url: publicUrl, caption: caption, access_token: accessToken };
 
       console.log('IG CONTAINER CREATE start');
-      const containerRes = await axios.post(
-        `https://graph.instagram.com/v18.0/${userId}/media`,
-        containerPayload,
-        { timeout: 120000 }
-      );
+      let containerRes;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          containerRes = await axios.post(
+            `https://graph.instagram.com/v18.0/${userId}/media`,
+            containerPayload,
+            { timeout: 120000 }
+          );
+          break;
+        } catch (err) {
+          const sub = err.response?.data?.error?.error_subcode;
+          if (attempt < 3 && sub === 2207052) {
+            console.log('IG CONTAINER: media fetch failed, retry', attempt);
+            await new Promise(r => setTimeout(r, 4000));
+            continue;
+          }
+          throw err;
+        }
+      }
       console.log('IG CONTAINER CREATE done:', containerRes.data.id);
       const containerId = containerRes.data.id;
 
