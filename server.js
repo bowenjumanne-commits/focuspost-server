@@ -1492,6 +1492,58 @@ app.get('/terms', (req, res) => {
 <p><a href="mailto:support@purpost.app">support@purpost.app</a></p>
 `));
 });
+
+// --- DATA DELETION PAGE ---
+// Paste into server.js, directly below your /terms route.
+// Serves: https://api.purpost.app/data-deletion
+
+app.get('/data-deletion', (req, res) => {
+  res.type('html').send(legalPage('Delete Your Data', `
+<h1>Delete Your Data</h1>
+<div class="date">Last updated: September 23, 2026</div>
+
+<p>You can remove your data from Purpost at any time. Here is exactly how, and exactly what gets deleted.</p>
+
+<div class="box">
+<p><strong>Purpost has no user accounts.</strong> We never collect your name, email address, phone number, or payment details. The only things we store are the access tokens for the social accounts you connect, and any posts you have scheduled.</p>
+</div>
+
+<h2>Option 1 — Disconnect an account</h2>
+<p>In the Purpost app, open <strong>Settings</strong> and tap <strong>Disconnect</strong> next to Instagram or TikTok.</p>
+<p>This immediately deletes that platform's access token from our database. We can no longer access that account.</p>
+
+<h2>Option 2 — Delete the app</h2>
+<p>Deleting Purpost from your device removes everything stored locally: your drafts, your post history, and your connection details.</p>
+
+<h2>Option 3 — Request full deletion</h2>
+<p>To have everything we hold on our servers erased, email <a href="mailto:support@purpost.app">support@purpost.app</a> from any address and ask us to delete your data.</p>
+<p>If you know your device identifier, include it — you can find it in the app. If you do not, tell us which Instagram or TikTok username you connected and we will locate it.</p>
+<p><strong>We action deletion requests within 30 days</strong>, and will confirm by email once it is done.</p>
+
+<h2>What gets deleted</h2>
+<ul>
+  <li>Access tokens and refresh tokens for any connected account</li>
+  <li>Your device identifier and its records</li>
+  <li>Any scheduled posts that have not yet published</li>
+  <li>Any media still held with our media provider</li>
+  <li>Your push notification token</li>
+</ul>
+
+<h2>What we cannot delete</h2>
+<p>Posts that have already been published live on Instagram or TikTok, not on our servers. We have no ability to remove them. Delete those from within Instagram or TikTok directly.</p>
+
+<h2>Revoking access on the platform itself</h2>
+<p>Disconnecting in Purpost removes the token from our database, but because the token was issued by Instagram or TikTok it may remain valid on their systems until it expires. To revoke it completely:</p>
+<ul>
+  <li><strong>Instagram</strong> — Settings → Apps and websites → remove Purpost</li>
+  <li><strong>TikTok</strong> — Settings → Security → Manage app permissions → remove Purpost</li>
+</ul>
+
+<h2>Questions</h2>
+<p><a href="mailto:support@purpost.app">support@purpost.app</a></p>
+`));
+});
+// --- END DATA DELETION PAGE ---
 // ─── END LEGAL PAGES v2 ─────────────────────────────────────────
 
 app.listen(PORT, () => {
